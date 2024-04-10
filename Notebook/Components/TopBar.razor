@@ -1,0 +1,26 @@
+﻿<div style="height:52px; border-bottom: 1px solid black; padding:8px 16px; display: flex;justify-content: flex-start; align-items: center; ">
+    <AuthorizeView>
+        <NotAuthorized>
+            <h1 class="ms-4 mb-0 me-5">Zápisník</h1>
+            <a class="rz-button rz-button-sm rz-variant-filled rz-success rz-shade-lighter" href="/account/login" title="přihlásit" style="height:28px; text-decoration: none;">přihlásit</a>
+        </NotAuthorized>
+        <Authorized>
+            <form action="Account/Logout" method="post">
+                <AntiforgeryToken />
+                <input type="hidden" name="ReturnUrl" value="" />
+                <button type="submit" class="rz-button rz-button-sm rz-variant-filled rz-danger rz-shade-lighter me-3" style="height:28px;" title="Odhlásit" value="">Odhlásit</button>
+            </form>
+
+            <a class="rz-button rz-button-sm rz-variant-filled rz-light rz-shade-lighter me-3" href="/Account/Manage" title="Správa účtu" style="height:28px; min-width:110px; text-decoration: none;">Správa účtu</a>
+
+            <div style="height:29px; border:1px solid lightgrey; border-radius:4px; padding: 0px 10px; margin-top:1px; background-color:rgb(247, 247, 247); display: flex;">
+                <div style="padding-top: 2px; margin-right:6px;">
+                    <i class="fas fa-user text-secondary"></i>
+                </div>
+                <div style="padding-top:1px;">
+                    @context.User.Identity?.Name
+                </div>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+</div>

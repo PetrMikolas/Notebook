@@ -1,0 +1,66 @@
+﻿@rendermode InteractiveAuto
+
+@if (!IsOpen) return;
+
+<div class="modal d-flex justify-content-center align-items-center bg-dark bg-opacity-50">
+    <div class="modal-dialog" style="min-width:340px;">
+        <div class="modal-content" style="font-family: Calibri; user-select:none;">
+            <div class="modal-header bg-light ps-3 pe-3 pt-2 pb-2">
+                <h4 class="modal-title">Nová stránka</h4>
+                <button class="btn-close" @onclick="CancelForm"></button>
+            </div>
+
+            <EditForm Model="_page" OnValidSubmit="@SubmitForm">
+                <div class="modal-body pt-2 pb-1">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <label for="title">Titulek:</label>&nbsp;
+                        </div>
+                        <InputText id="title" class="form-control" @bind-Value="_page.Title" maxlength="30" placeholder="vyplňte titulek" />
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light justify-content-start align-items-start pt-2 pb-2">
+                    <button type="submit" class="btn btn-sm btn-success me-2" style="width:95px">
+                        <strong>ULOŽIT</strong>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-warning" style="width:95px" title="Vymaže formulář" @onclick="SetDefaultParameters">
+                        <strong>RESETOVAT</strong>
+                    </button>
+                </div>
+            </EditForm>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter, EditorRequired] public EventCallback<PageDto> OnSubmit { get; set; }
+
+    private PageDto _page = default!;
+
+    private void SubmitForm()
+    {
+        OnSubmit.InvokeAsync(_page);
+        CancelForm();
+    }
+
+    private void CancelForm()
+    {
+        SetDefaultParameters();
+        IsOpenChanged.InvokeAsync();
+    }
+
+    private void SetDefaultParameters()
+    {
+        _page = new();
+    }
+
+    protected override void OnInitialized()
+    {
+        SetDefaultParameters();
+    }
+} 

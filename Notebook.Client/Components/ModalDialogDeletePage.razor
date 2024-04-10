@@ -1,0 +1,40 @@
+﻿@if (!IsOpen) return;
+
+<div class="modal d-flex justify-content-center align-items-center bg-dark bg-opacity-50" @onclick="@(() => OnClickDialog(ModalDialog.No))">
+    <div class="modal-dialog" style="min-width:253px;" @onclick:stopPropagation=true>
+        <div class="modal-content" style="font-family: Calibri; user-select:none">
+            <div class="modal-header bg-light ps-3 pe-3 pt-2 pb-2">
+                <h4 class="modal-title">Vymazat stránku</h4>
+            </div>
+
+            <div class="modal-body text-center ">
+                <strong class="align-middle">@PageTitle</strong>
+                <br />
+                <span class="align-middle">Opravdu chcete vymazat stránku?</span>
+            </div>
+
+            <div class="modal-footer bg-light pt-2 pb-2">
+                <button type="button" class="btn btn-sm btn-danger me-2" style="width:60px" @onclick=@(() => OnClickDialog(ModalDialog.Yes))>
+                    <strong>ANO</strong>
+                </button>
+
+                <button type="button" class="btn btn-sm btn-secondary" style="width:60px" @onclick="@(() => OnClickDialog(ModalDialog.No))">
+                    <strong>NE</strong>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter, EditorRequired] public string PageTitle { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public EventCallback<ModalDialog> OnDialog { get; set; }
+
+    private void OnClickDialog(ModalDialog modalDialog)
+    {
+        OnDialog.InvokeAsync(modalDialog);
+        IsOpenChanged.InvokeAsync();
+    }
+}

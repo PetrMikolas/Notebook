@@ -1,0 +1,71 @@
+﻿@page "/Account/Manage"
+
+@using System.ComponentModel.DataAnnotations
+@using Notebook.Components.Account
+@using Microsoft.AspNetCore.Identity
+
+@inject UserManager<AppUser> UserManager
+@inject SignInManager<AppUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Správa účtu - Profil</PageTitle>
+
+<h3>Profil</h3>
+<StatusMessage />
+<EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+    <DataAnnotationsValidator />
+    <div class="form-floating mb-3">
+        <input type="text" value="@username" class="form-control" placeholder="Please choose your username." disabled />
+        <label for="username" class="form-label">Uživatelské jméno</label>
+    </div>
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Please enter your phone number." />
+        <label for="phone-number" class="form-label">Telefonní číslo</label>
+        <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
+    </div>
+    <button type="submit" class="w-100 btn btn-lg btn-success">Uložit</button>
+</EditForm>
+
+@code {
+    private AppUser user = default!;
+    private string? username;
+    private string? phoneNumber;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        username = await UserManager.GetUserNameAsync(user);
+        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
+
+        Input.PhoneNumber ??= phoneNumber;
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (Input.PhoneNumber != phoneNumber)
+        {
+            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+            if (!setPhoneResult.Succeeded)
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("Chyba: Nepodařilo se nastavit telefonní číslo.", HttpContext);
+            }
+        }
+
+        await SignInManager.RefreshSignInAsync(user);
+        RedirectManager.RedirectToCurrentPageWithStatus("Váš profil byl aktualizován", HttpContext);
+    }
+
+    private sealed class InputModel
+    {
+        [Phone(ErrorMessage = "V kolonce telefonní číslo není zadáno platné telefonní číslo")]
+        [Display(Name = "Phone number")]
+        public string? PhoneNumber { get; set; }
+    }
+}

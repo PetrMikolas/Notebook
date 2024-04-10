@@ -1,0 +1,49 @@
+﻿@page "/Account/RegisterConfirmation"
+
+@using System.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Notebook.Models
+
+@inject UserManager<AppUser> UserManager
+@inject IEmailSender<AppUser> EmailSender
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Potvrzení registrace</PageTitle>
+
+<div class=" ms-5 mt-3">
+    <h1>Potvrzení registrace</h1>
+
+    <StatusMessage Message="@statusMessage" />
+
+    <p>Zkontrolujte prosím svůj e-mail a potvrďte správnost e-mailu.</p>
+</div>
+
+@code {
+    private string? statusMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? Email { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Email is null)
+        {
+            RedirectManager.RedirectTo("");
+        }
+
+        var user = await UserManager.FindByEmailAsync(Email);
+        if (user is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            statusMessage = "Chyba při hledání uživatele pro nespecifikovaný e-mail";
+        }
+    }
+}

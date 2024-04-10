@@ -1,0 +1,331 @@
+﻿<style>
+    .color-btn {
+        position: relative;
+        display: inline-block;
+        width: 35px;
+        height: 35px;
+        padding: 0px;
+        margin: 6px;
+        border-radius: 50%;
+        outline: 1px solid grey;
+        cursor: pointer;
+    }
+
+        .color-btn:active {
+            transform: translateY(1px);
+        }
+
+        .color-btn input {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+        }
+
+    .group-color-btn {
+        font-size: 0;
+        margin: 0 6px 6px;
+        width:329px;
+    }
+
+    .color-wrapper {
+        border: 1px solid lightgrey;
+        border-radius: 4px;
+        background-color: whitesmoke;
+        margin-bottom: 12px;
+    }
+
+    .color-title {
+        text-align: center;
+        display: block;
+        background-color: white;
+        border: 1px solid lightgrey;
+        border-radius: 4px;
+        margin: 8px;
+    }
+
+    .select-font {
+        height: 30px;
+        margin-right: 12px;
+        background-color: white;
+        border: 1px solid lightgrey;
+        border-radius: 4px;
+        padding: 4px 4px 6px 6px;
+    }
+
+    .button-font {
+        width: 30px;
+        height: 30px;
+        margin-right: 12px;
+        border: 1px solid;
+        border-radius: 4px;
+    }
+
+    #font-wrapper {
+        display: flex;
+        margin-bottom: 12px;
+    }
+
+    #preview {
+        text-align: center;
+        display: block;
+        border: 1px solid lightgrey;
+        border-radius: 4px;
+    }
+</style>
+
+@if (!IsOpen) return;
+
+<div class="modal d-flex justify-content-center align-items-center bg-dark bg-opacity-50">
+    <div class="modal-dialog" style="width:377px;">
+        <div class="modal-content" style="font-family: Calibri; user-select:none;">
+            <div class="modal-header bg-light ps-3 pe-3 pt-2 pb-2">
+                <h4 class="modal-title">Nastavení písma</h4>
+                <button class="btn-close" @onclick="CancelForm"></button>
+            </div>
+
+            <div class="modal-body">
+                <div id="font-wrapper">
+                    <InputSelect class="select select-font" style="width:168px; " title="Typ písma" @bind-Value="@_fontFamily">
+                        @foreach (var family in _fontFamilies)
+                        {
+                            <option value="@family">@family</option>
+                        }
+                    </InputSelect>
+
+                    <InputSelect class="select select-font" style="width:53px;" title="Velikost písma" @bind-Value="@_fontSize">
+                        @foreach (var size in _fontSizes)
+                        {
+                            <option value="@size.Value">@size.Key</option>
+                        }
+                    </InputSelect>
+
+                    <button class="button-font" style="background-color:@_buttonFontWeightBackgroundColor; border-color:@_buttonFontWeightBorderColor;" @onclick=ToggleFontWeight title="Tučné">
+                        <b>B</b>
+                    </button>
+
+                    <button class="button-font" style="background-color:@_buttonFontStyleBackgroundColor; border-color:@_buttonFontStyleBorderColor; font-family:'Times New Roman';" @onclick=ToggleFontStyle title="Kurzíva">
+                        <b><i>I</i></b>
+                    </button>
+                </div>
+
+                <div class="color-wrapper">
+                    <span class="color-title">
+                        Barva písma
+                    </span>
+                    <div class="group-color-btn">
+                        @foreach (var color in _fontColors)
+                        {
+                            <label class="color-btn" style="background-color:@color.HexCode;">
+                                <input type="radio" name="font" @onchange="@(() => OnChangeFontColor(color.HexCode))" checked>
+                            </label>
+
+                            if (color.Id == 7)
+                            {
+                                <br />
+                            }
+                        }
+                    </div>
+                </div>
+
+                <div class="color-wrapper">
+                    <span class="color-title">
+                        Barva zvýraznění textu
+                    </span>
+                    <div class="group-color-btn">
+                        @foreach (var color in _fontColors)
+                        {
+                            _isCheckedInputRadio = color.Id == 1 ? true : false;
+
+                            <label class="color-btn" style="background-color:@color.HexCode;">
+                                <input type="radio" name="background" @onchange="@(() => OnChangeBackgroundColor(color.HexCode))" checked="@_isCheckedInputRadio">
+                            </label>
+
+                            if (color.Id == 7)
+                            {
+                                <br />
+                            }
+                        }
+                    </div>
+                </div>
+
+                <span id="preview" class="ps-2 pe-2" style="font-family:@_fontFamily; font-size:@_fontSize; font-weight:@_fontWeight; font-style:@_fontStyle; color:@_fontColor; background-color:@_fontbackgroundColor;">
+                    Náhled písma
+                </span>
+            </div>
+
+            <div class="modal-footer bg-light justify-content-start align-items-start pt-2 pb-2">
+                <button class="btn btn-sm btn-success me-2" style="width:95px;" @onclick=SubmitForm title="Použije nastavené hodnoty" ><strong>POUŽÍT</strong></button>
+                <button type="button" class="btn btn-sm btn-warning" style="width:95px;" title="Nastaví výchozí hodnoty" @onclick="SetDefaultParameters"><strong>RESETOVAT</strong></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // This component allows users to customize font settings such as font family, font size, font weight, font style, text color, and background color.
+
+    [Parameter, EditorRequired] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter, EditorRequired] public EventCallback<FontSettings> OnSubmit { get; set; }
+
+    private bool _isCheckedInputRadio;
+    private bool _isSelectedFontWeight;
+    private bool _isSelectedFontStyle;
+    private string _fontFamily = string.Empty;
+    private string _fontSize = string.Empty;
+    private string _fontWeight = string.Empty;
+    private string _fontStyle = string.Empty;
+    private string _fontColor = string.Empty;
+    private string _fontbackgroundColor = string.Empty;
+    private string _buttonFontWeightBackgroundColor = string.Empty;
+    private string _buttonFontWeightBorderColor = string.Empty;
+    private string _buttonFontStyleBackgroundColor = string.Empty;
+    private string _buttonFontStyleBorderColor = string.Empty;
+    private record FontColor(int Id, string HexCode);
+    private IList<FontColor> _fontColors = default!;
+    private IList<string> _fontFamilies = default!;
+    private IDictionary<int, string> _fontSizes = default!;
+    public sealed record FontSettings(string Family, string Size, string Weight, string Style, string Color, string Background);
+
+    /// <summary>
+    /// Toggles font weight between bold and normal.
+    /// </summary>
+    private void ToggleFontWeight()
+    {
+        _isSelectedFontWeight = !_isSelectedFontWeight;
+        _fontWeight = _isSelectedFontWeight ? "bold" : "normal";
+        _buttonFontWeightBackgroundColor = _isSelectedFontWeight ? "lightgrey" : "white";
+        _buttonFontWeightBorderColor = _isSelectedFontWeight ? "dimgrey" : "lightgrey";
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Toggles font style between italic and normal.
+    /// </summary>
+    private void ToggleFontStyle()
+    {
+        _isSelectedFontStyle = !_isSelectedFontStyle;
+        _fontStyle = _isSelectedFontStyle ? "italic" : "normal";
+        _buttonFontStyleBackgroundColor = _isSelectedFontStyle ? "lightgrey" : "white";
+        _buttonFontStyleBorderColor = _isSelectedFontStyle ? "dimgrey" : "lightgrey";
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Changes the text color.
+    /// </summary>
+    /// <param name="hexCode">Hexadecimal code of the color.</param>
+    private void OnChangeFontColor(string hexCode)
+    {
+        _fontColor = hexCode;
+    }
+
+    /// <summary>
+    /// Changes the background color.
+    /// </summary>
+    /// <param name="hexCode">Hexadecimal code of the color.</param>
+    private void OnChangeBackgroundColor(string hexCode)
+    {
+        _fontbackgroundColor = hexCode;
+    }
+
+    /// <summary>
+    /// Submits the font settings.
+    /// </summary>
+    private void SubmitForm()
+    {
+        var fontSettings = new FontSettings(_fontFamily, _fontSize, _fontWeight, _fontStyle, _fontColor, _fontbackgroundColor);
+        OnSubmit.InvokeAsync(fontSettings);
+
+        CancelForm();
+    }
+
+    /// <summary>
+    /// Cancels and resets the font settings.
+    /// </summary>
+    private void CancelForm()
+    {
+        SetDefaultParameters();
+        IsOpenChanged.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Sets default font parameters.
+    /// </summary>
+    private void SetDefaultParameters()
+    {
+        _fontFamily = "Calibri";
+        _fontSize = "18px";
+        _fontWeight = "normal";
+        _fontStyle = "normal";
+        _fontColor = "#000000";            // Black
+        _fontbackgroundColor = "#FFFFFF";  // White
+        _buttonFontWeightBackgroundColor = "white";
+        _buttonFontWeightBorderColor = "lightgrey";
+        _buttonFontStyleBackgroundColor = "white";
+        _buttonFontStyleBorderColor = "lightgrey";
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Initializes font families, font sizes, and font colors.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        _fontFamilies = new List<string>()
+        {
+            "Calibri",
+            "Arial",
+            "Times New Roman",
+            "Helvetica",
+            "Roboto",
+            "Garamond",
+            "Verdana",
+            "Comic Sans MS"
+        };
+
+        _fontSizes = new Dictionary<int, string>()
+        {
+            { 10, "10px" },
+            { 11, "11px" },
+            { 12, "12px" },
+            { 13, "13px" },
+            { 14, "14px" },
+            { 15, "15px" },
+            { 16, "16px" },
+            { 18, "18px" },
+            { 20, "20px" },
+            { 22, "22px" },
+            { 24, "24px" },
+            { 26, "26px" },
+            { 28, "28px" },
+            { 36, "36px" },
+            { 48, "48px" }
+        };
+
+        _fontColors = new List<FontColor>()
+        {
+            new FontColor( 1, "#FFFFFF"),
+            new FontColor( 2, "#FFFF00"),
+            new FontColor( 3, "#FFA555"),
+            new FontColor( 4, "#FEC1EC"),
+            new FontColor( 5, "#dc3545"),
+            new FontColor( 6, "#FF00FF"),
+            new FontColor( 7, "#9900ff"),
+            new FontColor( 8, "#00FF00"),
+            new FontColor( 9, "#198754"),
+            new FontColor( 10, "#00FFFF"),
+            new FontColor( 11, "#1569c7"),
+            new FontColor( 12, "#C0C0C0"),
+            new FontColor( 13, "#808080"),
+            new FontColor( 14, "#000000"),
+        };
+
+        SetDefaultParameters();
+    }
+} 

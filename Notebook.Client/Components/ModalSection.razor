@@ -1,0 +1,67 @@
+﻿@using System.Text.RegularExpressions
+@rendermode InteractiveAuto
+
+@if (!IsOpen || Section is null) return;
+
+<div class="modal d-flex justify-content-center align-items-center bg-dark bg-opacity-50">
+    <div class="modal-dialog" style="min-width:340px;">
+        <div class="modal-content" style="font-family: Calibri; user-select:none;">
+            <div class="modal-header bg-light ps-3 pe-3 pt-2 pb-2">
+                <h4 class="modal-title">@_caption</h4>
+                <button class="btn-close" @onclick="CancelForm"></button>
+            </div>
+
+            <EditForm Model="Section" OnValidSubmit="@SubmitForm">
+                <div class="modal-body pt-2 pb-1">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <label for="name">Název:</label>&nbsp;
+                        </div>
+                        <InputText id="name" class="form-control" @bind-Value="Section.Name" maxlength="30" placeholder="vyplňte název" />
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light justify-content-start align-items-start pt-2 pb-2">
+                    <button type="submit" class="btn btn-sm btn-success me-2" style="width:95px"><strong>ULOŽIT</strong></button>
+                    <button type="button" class="btn btn-sm btn-warning" style="width:95px" title="Vymaže formulář" @onclick="Reset"><strong>RESETOVAT</strong></button>
+                </div>
+            </EditForm>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter, EditorRequired] public Operation ModalOperation { get; set; }
+    [Parameter, EditorRequired] public SectionDto? Section { get; set; }
+    [Parameter, EditorRequired] public EventCallback<SectionDto> OnSubmit { get; set; }
+
+    private string _caption = string.Empty;
+
+    private void SubmitForm()
+    {
+        OnSubmit.InvokeAsync(Section);
+        CancelForm();
+    }
+
+    private void CancelForm() =>
+        IsOpenChanged.InvokeAsync();
+
+    private void Reset()
+    {
+        Section = new();
+    }
+
+    protected override void OnParametersSet()
+    {
+        _caption = ModalOperation == Operation.Create ? "Nový oddíl" : "Editovat oddíl";
+    }
+
+    public enum Operation
+    {
+        Create, Edit
+    }
+}

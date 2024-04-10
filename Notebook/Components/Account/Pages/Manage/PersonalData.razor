@@ -1,0 +1,35 @@
+﻿@page "/Account/Manage/PersonalData"
+
+@inject IdentityUserAccessor UserAccessor
+
+<PageTitle>Správa účtu - Osobní údaje</PageTitle>
+
+<StatusMessage />
+<h3>Osobní údaje</h3>
+
+
+        <p>Váš účet obsahuje osobní údaje, které jste nám poskytli. Na této stránce si můžete tyto údaje stáhnout nebo vymazat.</p>
+        <p>
+            <strong>Vymazáním osobních údajů dojde k trvalému odstranění vašeho účtu, který již nebude možné obnovit.</strong>
+        </p>
+        <div style="display: flex;justify-content: flex-start; height:39px;">
+            <form action="Account/Manage/DownloadPersonalData" method="post">
+                <AntiforgeryToken />
+                <button class="btn btn-success me-3" type="submit">Stáhnout</button>
+            </form>
+            <p>
+                <a href="Account/Manage/DeletePersonalData" class="btn btn-danger">Vymazat</a>
+            </p>
+        </div>
+ 
+
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _ = await UserAccessor.GetRequiredUserAsync(HttpContext);
+    }
+}

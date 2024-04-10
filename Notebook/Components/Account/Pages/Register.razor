@@ -1,0 +1,183 @@
+﻿@page "/Account/Register"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Notebook.Components.Account
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Notebook.Models
+@using Notebook.Services.Email
+@using static Notebook.Components.Recaptcha
+
+@inject UserManager<AppUser> UserManager
+@inject IUserStore<AppUser> UserStore
+@inject SignInManager<AppUser> SignInManager
+@inject IEmailSender<AppUser> EmailSender
+@inject ILogger<Register> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject IEmailService Email
+
+@rendermode InteractiveServer
+
+<PageTitle>Registrace</PageTitle>
+
+<div class="mt-3 m-5" style="max-width:570px; user-select:none;">
+    <h1>Registrace</h1>
+    <StatusMessage  Message="@Message" />
+    <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+        <DataAnnotationsValidator />
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+            <label for="email">E-mail</label>
+            <ValidationMessage For="() => Input.Email" class="text-danger" />
+        </div>
+
+        <div class="form-floating mb-3">
+            <InputText type="@(_isPasswordVisible ? "text" : "password")" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+            <label for="password">Heslo</label>
+            <ValidationMessage For="() => Input.Password" class="text-danger" />
+        </div>
+
+        <div class="form-floating mb-3">
+            <InputText type="@(_isPasswordVisible ? "text" : "password")" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+            <label for="confirm-password">Potvrdit heslo</label>
+            <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+        </div>
+        
+        <div class="checkbox mb-2">
+            <label class="form-label">
+                <InputCheckbox @bind-Value="_isPasswordVisible" class="darker-border-checkbox form-check-input" />
+                zobrazit heslo
+            </label>
+        </div>        
+
+        <Recaptcha OnResponse="@OnRecaptchaResponse" OnExpiration="OnRecaptchaExpiration" Class="mb-3" Visible=@_isVisibleRecaptcha />
+
+        <button type="submit" class="w-100 btn btn-lg btn-success" disabled="@_isDisableButtonSubmit">Registrovat</button>
+    </EditForm>
+</div>
+
+@code {
+    private IEnumerable<IdentityError>? identityErrors;
+    private bool _isDisableButtonSubmit = true;
+    private bool _isVisibleRecaptcha = true;
+    private bool _isPasswordVisible;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string? Message => identityErrors is null ? null : $"Error: {string.Join(" ", identityErrors.Select(error => error.Description))}";
+
+    private void OnRecaptchaResponse(RecaptchaResponse response)
+    {
+        if (!response.Success && response.ErrorCodes.Length != 0)
+        {
+            _isVisibleRecaptcha = false;
+            identityErrors = new List<IdentityError>() { new IdentityError() { Description = "Nefunkční služba pro ověřování uživatele. Zkuste to prosím později." } };            
+            _ = Email.SendErrorAsync(string.Join("\n", response.ErrorCodes));
+            return;
+        }
+
+        _isDisableButtonSubmit = !response.Success;
+    }
+
+    private void OnRecaptchaExpiration(bool isExpired)
+    {
+        _isDisableButtonSubmit = isExpired;
+    }
+
+    public async Task RegisterUser(EditContext editContext)
+    {
+        var user = CreateUser();
+
+        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+        var emailStore = GetEmailStore();
+        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+        var result = await UserManager.CreateAsync(user, Input.Password);
+
+        if (!result.Succeeded)
+        {
+            identityErrors = result.Errors;
+            return;
+        }
+
+        Logger.LogInformation("User created a new account with password.");
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+
+        try
+        {
+            await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+        }
+        catch
+        {
+            identityErrors = new List<IdentityError>() 
+            { 
+                new IdentityError() { Description = "Ověřovací e-mail se nepodařilo odeslat. Zkuste prosím znovu odeslat ověřovací e-mail." } 
+            };
+
+            return;
+        }
+
+        if (UserManager.Options.SignIn.RequireConfirmedAccount)
+        {
+            NavigationManager.NavigateTo($"Account/RegisterConfirmation?email={Input.Email}");
+            return;            
+        }
+
+        await SignInManager.SignInAsync(user, isPersistent: false);        
+        NavigationManager.NavigateTo(ReturnUrl ??= string.Empty);
+    }
+
+    private AppUser CreateUser()
+    {
+        try
+        {
+            return Activator.CreateInstance<AppUser>();
+        }
+        catch
+        {
+            throw new InvalidOperationException($"Can't create an instance of '{nameof(AppUser)}'. " +
+                $"Ensure that '{nameof(AppUser)}' is not an abstract class and has a parameterless constructor.");
+        }
+    }
+
+    private IUserEmailStore<AppUser> GetEmailStore()
+    {
+        if (!UserManager.SupportsUserEmail)
+        {
+            throw new NotSupportedException("The default UI requires a user store with email support.");
+        }
+
+        return (IUserEmailStore<AppUser>)UserStore;
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Povinný údaj")]
+        [EmailAddress(ErrorMessage = "Zadaný e-mail není platná e-mailová adresa")]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Povinný údaj")]
+        [StringLength(100, ErrorMessage = "{0} musí mít alespoň {2} a maximálně {1} znaků", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Heslo")]
+        public string Password { get; set; } = string.Empty;
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm password")]
+        [Compare("Password", ErrorMessage = "Heslo a potvrzovací heslo se neshodují")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

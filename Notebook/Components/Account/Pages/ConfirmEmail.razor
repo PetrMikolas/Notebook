@@ -1,0 +1,50 @@
+﻿@page "/Account/ConfirmEmail"
+
+@using System.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Notebook.Models
+
+@inject UserManager<AppUser> UserManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Potvrzení e-mailu</PageTitle>
+
+<div class="ms-5 mt-3" style="max-width:600px">
+    <h1>Potvrzení e-mailu</h1>
+    <StatusMessage Message="@statusMessage" />
+</div>
+
+@code {
+    private string? statusMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? UserId { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Code { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserId is null || Code is null)
+        {
+            RedirectManager.RedirectTo("");
+        }
+
+        var user = await UserManager.FindByIdAsync(UserId);
+        if (user is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            statusMessage = $"Chyba při načítání uživatele s ID {UserId}";
+        }
+        else
+        {
+            var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+            var result = await UserManager.ConfirmEmailAsync(user, code);
+            statusMessage = result.Succeeded ? "Děkujeme za potvrzení vašeho e-mailu. Nyní se můžete přihlásit." : "Chyba při potvrzování vašeho e-mailu.";
+        }
+    }
+}

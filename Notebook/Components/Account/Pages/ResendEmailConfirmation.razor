@@ -1,0 +1,100 @@
+﻿@page "/Account/ResendEmailConfirmation"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Notebook.Models
+@using Notebook.Services.Email
+@using static Notebook.Components.Recaptcha
+
+@inject UserManager<AppUser> UserManager
+@inject IEmailSender<AppUser> EmailSender
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject IEmailService Email
+@inject ILogger<ResendEmailConfirmation> Logger
+
+@rendermode InteractiveServer
+
+<PageTitle>Znovu odeslat ověření</PageTitle>
+
+<div class="mt-3 m-5" style="max-width:570px; user-select:none;">
+    <h1>Znovu odeslat ověřovací e-mail</h1>
+    <StatusMessage Message="@_message" />
+
+    <EditForm Model="Input" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <DataAnnotationsValidator />
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.Email" class="form-control" aria-required="true" placeholder="name@example.com" />
+            <label for="email" class="form-label">Zadejte e-mail, který jste použili při registraci</label>
+            <ValidationMessage For="() => Input.Email" class="text-danger" />
+        </div>
+        <Recaptcha OnResponse="@OnRecaptchaResponse" OnExpiration="OnRecaptchaExpiration" Class="mb-3" Visible=@_isVisibleRecaptcha />
+        <button type="submit" class="w-100 btn btn-lg btn-success" disabled="@_isDisableButtonSubmit">Odeslat</button>
+    </EditForm>
+
+</div>
+
+@code {
+    private string? _message;
+    private bool _isDisableButtonSubmit = true;
+    private bool _isVisibleRecaptcha = true;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    private void OnRecaptchaResponse(RecaptchaResponse response)
+    {
+        if (!response.Success && response.ErrorCodes.Length != 0)
+        {
+            _isVisibleRecaptcha = false;
+            _message = "Error: Nefunkční služba pro ověřování uživatele. Zkuste to prosím později";
+            _ = Email.SendErrorAsync(string.Join("\n", response.ErrorCodes));
+            return;
+        }
+
+        _isDisableButtonSubmit = !response.Success;
+    }
+
+    private void OnRecaptchaExpiration(bool isExpired)
+    {
+        _isDisableButtonSubmit = isExpired;
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        var user = await UserManager.FindByEmailAsync(Input.Email!);
+        if (user is null)
+        {
+            NavigationManager.NavigateTo("Account/ResendEmailConfirmationDone");
+            return;
+        }
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
+
+        try
+        {
+            await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+            NavigationManager.NavigateTo("Account/ResendEmailConfirmationDone");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.ToString());
+            _message = "Error: E-mail se nepodařilo odeslat. Zkuste to prosím později.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Povinný údaj")]
+        [EmailAddress(ErrorMessage = "Zadaný e-mail není platná e-mailová adresa")]
+        public string Email { get; set; } = string.Empty;
+    }
+}

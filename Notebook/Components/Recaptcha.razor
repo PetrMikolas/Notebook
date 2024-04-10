@@ -1,0 +1,123 @@
+﻿@using System.Text.Json.Serialization
+
+@inject IJSRuntime JS
+@inject IConfiguration Config
+@inject HttpClient HttpClient
+@inject ILogger<Recaptcha> Logger
+
+<script>
+    function recaptchaLoaded(elementId, siteKey, dotNetReference) {
+        grecaptcha.render(elementId, {
+            'sitekey': siteKey,
+            'callback': function (token) {
+                dotNetReference.invokeMethodAsync('RecaptchaResponseCallback', token);
+            },
+            'expired-callback': function () {
+                dotNetReference.invokeMethodAsync('RecaptchaExpiredCallback');
+            }
+        });
+    };
+</script>
+
+<div id="recaptcha" class="@Class" style="display: @(Visible ? "block" : "none"); user-select:none;"></div>
+
+@code {
+    // This component integrates Google reCAPTCHA v2 into Blazor applications, allowing users to verify that they are human before performing certain actions, such as submitting a form.
+
+    /// <summary>
+    /// CSS class to apply to the reCAPTCHA container.
+    /// </summary>
+    [Parameter] public string Class { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Boolean indicating whether the reCAPTCHA is visible or hidden.
+    /// </summary>
+    [Parameter] public bool Visible { get; set; } = true;
+
+    /// <summary>
+    /// Event callback triggered when reCAPTCHA validation succeeds.
+    /// </summary>
+    [Parameter] public EventCallback<RecaptchaResponse> OnResponse { get; set; }
+
+    /// <summary>
+    /// Event callback triggered when the reCAPTCHA expires.
+    /// </summary>
+    [Parameter] public EventCallback<bool> OnExpiration { get; set; }
+
+    private string _sitekey = string.Empty;
+
+    /// <summary>
+    /// Invoked when the reCAPTCHA challenge is successfully completed. Sends the token to the server for verification.
+    /// </summary>
+    /// <param name="token">The reCAPTCHA token.</param>
+    [JSInvokable]
+    public async Task RecaptchaResponseCallback(string token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(token, nameof(token));
+
+        try
+        {
+            string secretKey = Config["Recaptcha:Secretkey"] ?? throw new ArgumentNullException("Nepodařilo se načíst secret key.");
+            HttpResponseMessage responseMessage = await HttpClient.PostAsync($"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={token}", null);
+
+            if (responseMessage.IsSuccessStatusCode)
+            {
+                var content = await responseMessage.Content.ReadAsStringAsync();
+                RecaptchaResponse response = System.Text.Json.JsonSerializer.Deserialize<RecaptchaResponse>(content) ?? throw new ArgumentNullException("Nepodařilo se získat odpoveď z reCaptcha.");
+
+                await OnResponse.InvokeAsync(response);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.ToString());
+            var resp = new RecaptchaResponse() { ErrorCodes = new string[] { ex.ToString() } };
+            await OnResponse.InvokeAsync(resp);
+        }
+    }
+
+    /// <summary>
+    /// Invoked when the reCAPTCHA challenge expires.
+    /// </summary>
+    [JSInvokable]
+    public async Task RecaptchaExpiredCallback()
+    {
+        await OnExpiration.InvokeAsync(true);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _sitekey = Config["Recaptcha:SiteKey"] ?? throw new ArgumentNullException("Nepodařilo se načíst site key.");
+                await JS.InvokeVoidAsync("recaptchaLoaded", "recaptcha", _sitekey, DotNetObjectReference.Create(this));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.ToString());
+                var response = new RecaptchaResponse() { ErrorCodes = new string[] { ex.ToString() } };
+                await OnResponse.InvokeAsync(response);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Represents the response received from the reCAPTCHA verification endpoint.
+    /// </summary>
+    public sealed record RecaptchaResponse
+    {
+        [JsonPropertyName("success")]
+        public bool Success { get; init; }
+
+        [JsonPropertyName("challenge_ts")]
+        public DateTime ChallengeTs { get; init; }
+
+        [JsonPropertyName("hostname")]
+        public string Hostname { get; init; } = string.Empty;
+
+        [JsonPropertyName("error-codes")]
+        public string[] ErrorCodes { get; init; } = Array.Empty<string>();
+    }
+}

@@ -1,0 +1,116 @@
+
+/*------------------------------------ Loader bez textu --------------------------------*/
+.loader {
+    border: 4px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 4px solid #3498db;
+    width: 40px;
+    height: 40px;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+    margin-bottom: -15px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/*----------------------- Loading spinner s textem uprostøed -----------------------*/
+.spinner-container {
+    width: 157px;
+    height: 157px;
+    text-align: center;
+    margin: auto;
+}
+
+.spinner {
+    border: 5px solid #94B6E5;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto;
+    position: relative;
+    border-radius: 50%;
+    border-left-color: transparent;
+    border-right-color: transparent;
+    animation: 0.7s linear infinite rotate;
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotateZ(-360deg)
+    }
+
+    100% {
+        transform: rotateZ(0deg)
+    }
+}
+
+#spinner-text {
+    color: black;
+    font-family: Arial;
+    font-size: 18px;
+    position: relative;
+    top: 63px; /* èím vyšší èíslo, tím níže bude text umístìn ve spinneru */
+}
+
+/*------------------------------ Grid ---------------------------*/
+
+.wrapper {
+    display: grid;
+    grid-template-rows: 52px 52px 1fr;
+    grid-template-columns: 275px minmax(1125px, 1fr);
+    grid-template-areas:
+        'header header'
+        'side-panel-header page-header'
+        'side-panel page-content';
+    gap: 0px;
+    height: calc( 100vh - 52px);
+}
+
+#header {
+    grid-area: header;
+    border-bottom: 1px solid grey;
+    user-select: none;
+}
+
+#side-panel-header {
+    grid-area: side-panel-header;
+    /*border-bottom: 1px solid lightgrey;*/
+    border-right: 1px solid grey;
+    user-select: none;
+    font-family: Calibri;
+}
+
+#side-panel {
+    grid-area: side-panel;
+    border-right: 1px solid grey;
+    overflow-x: hidden;
+    overflow-y: auto;
+    user-select: none;
+    font-family: Calibri;
+}
+
+#page-header {
+    grid-area: page-header;
+    border-bottom: 1px solid lightgrey;
+    user-select: none;
+}
+
+#page-content {
+    grid-area: page-content;
+    padding: 20px;
+    outline: none;
+    font-family: Calibri;
+    font-size: 18px;
+    overflow: auto;
+}
+
+.dragover {
+    border: 2px dashed #007BFF;
+}

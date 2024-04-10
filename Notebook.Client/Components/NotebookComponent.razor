@@ -1,0 +1,716 @@
+﻿@page "/"
+<PageTitle>Zápisník</PageTitle>
+
+@using Microsoft.AspNetCore.Components.Authorization
+@using Notebook.Client.Models
+@using Notebook.Client.Services.Api
+@using Microsoft.AspNetCore.Authorization
+@using static Notebook.Client.Components.ModalFontSettings
+@using static Notebook.Client.Components.ModalSection
+
+@inject IJSRuntime JS
+@inject IApiService ApiService
+@inject IApiClient ApiClient
+@inject NotificationService NotificationService
+@attribute [Authorize]
+
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Zápisník</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <AntiforgeryToken />
+        <div class="wrapper">
+            <div id="header">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Left" Class="rz-unselectable-text rz-m-3">
+                    <RadzenButton Click="@(() => OpenModalSection(Operation.Create))" Shade="Shade.Lighter" Text="Nový oddíl" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" title="Vytvořit oddíl" />
+                    <RadzenButton Click="@(() => OpenModalSection(Operation.Edit))" Shade="Shade.Lighter" Text="Editovat oddíl" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" title="Editovat oddíl" Visible=@_isVisibleButtonEditSection />
+                    <RadzenButton Click="@(() => _isOpenModalDialogSection = true)" Shade="Shade.Lighter" Text="Odstranit oddíl" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" title="Odstranit oddíl" Visible=@_isVisibleButtonDeleteSection />
+                </RadzenStack>
+            </div>
+
+            <div id="side-panel-header">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="0">
+                    <RadzenButton Click="@Refresh" Shade="Shade.Lighter" Size="ButtonSize.Small" Icon="cached" ButtonStyle="ButtonStyle.Success" Style="height:28.5px; width:30px; margin:12px 0 10px;" title="Obnovit" />
+                    <RadzenTextBox id="input-search" @oninput=@OnInputSearch Value=@_inputSearchText MaxLength="30" Placeholder="Vyhledat oddíl nebo stránku" Style="height:30px; width:216px; margin:12px 0 10px; padding:0px 6px; outline:none;" />
+                </RadzenStack>
+            </div>
+
+            <div id="side-panel">
+                <LoadingSpinner Visible=@_isVisibleLoadingSpinner />
+
+                <RadzenTree Data=@_sections Change=@ChangedSelectedTreeOptions @bind-Value=@_selectedTreeOptions Style="flex:1; margin:0px 7px; --rz-tree-node-toggle-width:20px">
+                    <RadzenTreeLevel TextProperty="Name" ChildrenProperty="Pages" Expanded=@SetTreeExpandedState />
+                    <RadzenTreeLevel TextProperty="Title" HasChildren=@(pages => false) />
+                </RadzenTree>
+            </div>
+
+            <div id="page-header">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Left" Class="rz-m-3" Style="height:28px">
+                    <RadzenTextBox id="title" Value="@GetSelectedPageTitle()" @oninput=@OnInputTitle MaxLength="29" Placeholder="Napište název stránky" Style="height:30px; width:350px; padding:7px; font-size:23px; font-family:Calibri; outline:none; border:none; --rz-input-focus-shadow:none;" Visible=@_isVisibleInputTitlePage />
+
+                    <RadzenButton Click=@(() => SavePageAsync()) Shade="Shade.Lighter" Text="Uložit" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" title="Uložit stránku" Visible=@_isVisibleButtonSavePage />
+                    <RadzenButton Click=@(() => _isOpenModalPage = true) Shade="Shade.Lighter" Text="Přidat stránku" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" title="Přidat stránku" Visible=@_isVisibleButtonAddPage />
+                    <RadzenButton Click=@ResetPage Shade="Shade.Lighter" Text="Resetovat" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" title="Resetovat stránku" Visible=@_isVisibleButtonResetPage />
+                    <RadzenButton Click=@(() => _isOpenModalDialogPage = true) Shade="Shade.Lighter" Text="Odstranit" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" title="Odstranit stránku" Visible=@_isVisibleButtonDeletePage />
+
+                    <input type="file" id="input-image" accept="image/*" onchange="insertImageToDiv(this.id, 'page-content', @GetSelectedImageSize())" hidden />
+                    <label class="rz-button rz-button-sm rz-variant-filled rz-info rz-shade-lighter icon" style="@_setDisplayProperty" for="input-image" title="Nahrát obrázek"><i class="fas fa-upload me-1"></i>OBRÁZEK</label>
+
+                    <RadzenDropDown @bind-Value=@_selectedImageSize Data=@GetImageSizeOptions() TextProperty="Option" ValueProperty="Value" Placeholder="Výška obrázku" Style="width:145px; height:30px; padding: 3px 6px; font-family: Calibri;" Visible="@_isVisibleDropDownImageSize" />
+
+                    <button @onclick="@(() => _isOpenModalColorPicker = true)" style="height: 30px; padding: 0; border: 1px solid lightgrey; border-radius: 4px; overflow: hidden; @_setDisplayProperty;" title="Nastavit písmo">
+                        <img src="images\font.png" style="width: 100%; height: 100%; padding:6px; background-color:white; pointer-events: none;">
+                    </button>
+
+                    <RadzenRow AlignItems="AlignItems.Center" class="rz-ps-2 rz-pe-2  rz-border-radius-1 rz-background-color-base-100" Style="height:30px; border: var(--rz-grid-cell-border);" title="Velikost stránky" Visible=@_isVisiblePageSize>
+                        @Utility.FormatBytes(_pageSizeInBytes)
+                    </RadzenRow>
+                </RadzenStack>
+
+                <div id="alert-message" style="position:absolute;">
+                    @foreach (var message in _alertMessages)
+                    {
+                        <RadzenStack Orientation="Orientation.Horizontal" Gap="16px" class="rz-unselectable-text">
+                            <RadzenAlert AlertStyle="message.Style" Variant="Variant.Filled" Shade="Shade.Default" Size="AlertSize.Small" ShowIcon="message.ShowIcon" AllowClose="message.AllowClose" class="rz-ms-4 rz-me-4 rz-mt-4 rz-mb-0">
+                                @message.Text
+                            </RadzenAlert>
+                        </RadzenStack>
+                    }
+                </div>
+            </div>
+
+            <div id=@PAGE_CONTENT_ID contenteditable="true" style="@_setDisplayProperty;" ondragover="handleDragOver(event)" ondrop="handleDrop(event, @GetSelectedImageSize())">
+            </div>
+        </div>
+
+        <ModalSection @bind-IsOpen="@_isOpenModalSection"
+                      ModalOperation="@_modalSectionOperation"
+                      Section="@_selectedSection"
+                      OnSubmit="@OnSubmitModalSection" />
+
+        <ModalDialogDeleteSection @bind-IsOpen="@_isOpenModalDialogSection"
+                                  SectionName="@GetSelectedSectionName()"
+                                  OnDialog="@OnDialogDeleteSection" />
+
+        <ModalPage @bind-IsOpen="@_isOpenModalPage"
+                   OnSubmit="@OnSubmitModalPage" />
+
+        <ModalDialogDeletePage @bind-IsOpen="@_isOpenModalDialogPage"
+                               PageTitle="@GetSelectedPageTitle()"
+                               OnDialog="@OnDialogDeletePage" />
+
+        <ModalFontSettings @bind-IsOpen="@_isOpenModalColorPicker"
+                           OnSubmit="@OnSubmitFontSettings" />
+
+        <RadzenComponents />
+
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private int _selectedImageSize;
+    private bool _isVisibleButtonDeleteSection;
+    private bool _isVisibleButtonEditSection;
+    private bool _isVisibleButtonAddPage;
+    private bool _isVisibleButtonDeletePage;
+    private bool _isVisibleButtonResetPage;
+    private bool _isVisibleButtonSavePage;
+    private bool _isVisibleInputTitlePage;
+    private bool _isVisibleDropDownImageSize;
+    private bool _isVisibleLoadingSpinner = true;
+    private bool _isVisiblePageSize;
+    private bool _isVisibleColorPicker;
+    private bool _isOpenModalPage;
+    private bool _isOpenModalSection;
+    private bool _isOpenModalDialogPage;
+    private bool _isOpenModalDialogSection;
+    private bool _isOpenModalColorPicker;
+    private bool _isChangeAfterSavingPage;
+    private bool _isTreeExpanded;
+    private string _inputSearchText = string.Empty;
+    private string _setDisplayProperty = "display: none;";
+    private long _pageSizeInBytes;
+    private object? _selectedTreeOptions;
+    private PageDto? _selectedPage;
+    private SectionDto? _selectedSection;
+    private List<SectionDto> _sections = [];
+    private ModalSection.Operation _modalSectionOperation;
+    private List<AlertMessage> _alertMessages = [];
+    private const string PAGE_CONTENT_ID = "page-content";
+    private record ImageSizeOption(string Option, int Value);
+
+    /// <summary>
+    /// Sets the expanded state of the tree node based on the selected section.
+    /// </summary>
+    /// <param name="data">The data representing the section.</param>
+    /// <returns>True if the tree node should be expanded, otherwise false.</returns>
+    private bool SetTreeExpandedState(object data)
+    {
+        if (_isTreeExpanded)
+        {
+            return true;
+        }
+
+        var section = data as SectionDto;
+
+        if (section is not null && _selectedSection is not null)
+        {
+            return section.Id == _selectedSection.Id;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Handles the input search event to filter sections and pages based on the search text.
+    /// </summary>
+    /// <param name="args">The event arguments containing the search text.</param>
+    /// <returns></returns>
+    private async Task OnInputSearch(ChangeEventArgs args)
+    {
+        if (args.Value is not null && !string.IsNullOrWhiteSpace(args.Value.ToString()!))
+        {
+            _sections = await ApiService.SearchValuesAsync(args.Value.ToString()!.Trim());
+            _isTreeExpanded = true;
+        }
+        else
+        {
+            _sections = await ApiService.GetSectionsAsync();
+            _isTreeExpanded = false;
+        }
+    }
+
+    /// <summary>
+    /// Handles the input title event to update the selected page title.
+    /// </summary>
+    /// <param name="args">The event arguments containing the new title.</param>
+    private void OnInputTitle(ChangeEventArgs args)
+    {
+        if (args.Value is not null && _selectedPage is not null)
+        {
+            _selectedPage.Title = args.Value.ToString()!;
+        }
+    }
+
+    /// <summary>
+    /// Handles the font settings submission event to apply the selected font settings to the page content.
+    /// </summary>
+    /// <param name="fontSettings">The font settings to apply.</param>
+    /// <returns></returns>
+    private async Task OnSubmitFontSettings(FontSettings fontSettings)
+    {
+        await JS.InvokeVoidAsync("applyFontSettings", fontSettings.Family, fontSettings.Size, fontSettings.Weight, fontSettings.Style, fontSettings.Color, fontSettings.Background, PAGE_CONTENT_ID);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Refreshes the section list by reloading the sections and resetting the selected page and section.
+    /// </summary>
+    /// <returns></returns>
+    private async Task Refresh()
+    {
+        _selectedPage = null;
+        _selectedSection = null;
+        _sections = await ApiService.GetSectionsAsync();
+        _isTreeExpanded = !_isTreeExpanded;
+        DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.None);
+
+        try
+        {
+            await JS.InvokeVoidAsync("setFocusById", "input-search");
+        }
+        catch (JSException ex)
+        {
+            _ = ApiClient.SendErrorAsync(ex.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Resets the selected page by clearing its content.
+    /// </summary>
+    /// <returns></returns>
+    private async Task ResetPage()
+    {
+        if (_selectedPage is not null)
+        {
+            _pageSizeInBytes = 0;
+            _selectedImageSize = 0;
+
+            try
+            {
+                await JS.InvokeVoidAsync("deleteElementContentById", PAGE_CONTENT_ID);
+                await JS.InvokeVoidAsync("setFocusById", PAGE_CONTENT_ID);
+            }
+            catch (JSException ex)
+            {
+                _ = ApiClient.SendErrorAsync(ex.ToString());
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handles the event when the selected tree options change.
+    /// </summary>
+    /// <returns></returns>
+    private async Task ChangedSelectedTreeOptions()
+    {
+        try
+        {
+            if (_selectedTreeOptions is PageDto page && !_isChangeAfterSavingPage)
+            {
+                DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.Page);
+                ShowAlertMessageInfo($"Načítání stránky \"{page.Title}\"");
+
+                _selectedPage = page;
+                _pageSizeInBytes = page.SizeInBytes;
+                await JS.InvokeVoidAsync("deleteElementContentById", PAGE_CONTENT_ID);
+
+                var content = await ApiService.GetPageContentAsync(page.Id);
+                await JS.InvokeVoidAsync("setElementContentById", PAGE_CONTENT_ID, content);
+                ClearAlertMessage();
+            }
+
+            if (_selectedTreeOptions is SectionDto section)
+            {
+                ClearAlertMessage();
+                DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.Section);
+                _selectedSection = section;
+                await JS.InvokeVoidAsync("deleteElementContentById", PAGE_CONTENT_ID);
+            }
+        }
+        catch (JSException ex)
+        {
+            ShowAlertMessageError("Neočekávaná chyba. O problému víme a pracujeme na nápravě.");
+            _ = ApiClient.SendErrorAsync(ex.ToString());
+        }
+        catch (Exception ex)
+        {
+            ShowAlertMessageError(ex.Message);            
+        }
+    }
+
+    /// <summary>
+    /// Opens the modal dialog for creating or editing a section.
+    /// </summary>
+    /// <param name="operation">The operation to perform (Create or Edit).</param>
+    private void OpenModalSection(Operation operation)
+    {
+        if (operation == Operation.Create)
+        {
+            _selectedSection = new();
+        }
+
+        _modalSectionOperation = operation;
+        _isOpenModalSection = true;
+    }
+
+    /// <summary>
+    /// Handles the submission of the modal dialog for creating or editing a section.
+    /// </summary>
+    /// <param name="section">The section data to submit.</param>
+    /// <returns></returns>
+    private async Task OnSubmitModalSection(SectionDto section)
+    {
+        ClearAlertMessage();
+        await SaveSectionAsync(section);
+    }
+
+    /// <summary>
+    /// Saves the section asynchronously.
+    /// </summary>
+    /// <param name="section">The section to save.</param>
+    /// <returns></returns>
+    private async Task SaveSectionAsync(SectionDto section)
+    {
+        try
+        {
+            if (section.Id != 0)
+            {
+                await ApiService.UpdateSectionAsync(section);
+            }
+            else
+            {
+                await ApiService.CreateSectionAsync(section);
+            }
+
+            _sections = await ApiService.GetSectionsAsync();
+            SetSelectedTreeOptionsAfterSavingSection();
+
+            await ShowAlertMessageSuccessAsync("Oddíl byl uložen", 800);
+        }
+        catch (Exception ex)
+        {
+            ShowAlertMessageError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Sets the selected tree options after saving a section.
+    /// </summary>
+    private void SetSelectedTreeOptionsAfterSavingSection()
+    {
+        if (_selectedSection is null)
+        {
+            return;
+        }
+
+        if (_selectedSection.Id != 0)
+        {
+            _selectedTreeOptions = _sections.FirstOrDefault(section => section.Id == _selectedSection.Id);
+        }
+        else
+        {
+            _selectedTreeOptions = _sections.OrderByDescending(section => section.Id).FirstOrDefault();
+        }
+    }
+
+    /// <summary>
+    /// Handles the confirmation dialog for deleting a section.
+    /// </summary>
+    /// <param name="modalDialog">The confirmation dialog result.</param>
+    /// <returns></returns>
+    private async Task OnDialogDeleteSection(ModalDialog modalDialog)
+    {
+        if (modalDialog == ModalDialog.Yes && _selectedSection is not null)
+        {
+            await DeleteSectionAsync(_selectedSection.Id);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a section asynchronously.
+    /// </summary>
+    /// <param name="sectionId">The ID of the section to delete.</param>
+    /// <returns></returns>
+    private async Task DeleteSectionAsync(int sectionId)
+    {
+        ShowAlertMessageInfo("Vymazávání oddílu...");
+
+        try
+        {
+            _selectedSection = null;
+            await ApiService.DeleteSectionAsync(sectionId);
+
+            _sections = await ApiService.GetSectionsAsync();
+            DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.None);
+
+            await ShowAlertMessageSuccessAsync("Oddíl byl vymazán", 800);
+        }
+        catch (Exception ex)
+        {
+            ShowAlertMessageError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Handles the submission of the modal dialog for adding or editing a page.
+    /// </summary>
+    /// <param name="addedPage">The added or edited page data.</param>
+    /// <returns></returns>
+    private async Task OnSubmitModalPage(PageDto addedPage)
+    {
+        ClearAlertMessage();
+
+        _selectedPage = addedPage;
+        await SavePageAsync();
+    }
+
+    /// <summary>
+    /// Saves the selected page asynchronously.
+    /// </summary>
+    /// <returns></returns>
+    private async Task SavePageAsync()
+    {
+        if (_selectedPage is null)
+        {
+            return;
+        }
+
+        ShowAlertMessageInfo("Ukládání stránky...");
+
+        try
+        {
+            if (_selectedPage.Id != 0)
+            {
+                await Task.Run(async () =>  // Task vytvořen, aby byla JS metoda zpracována v samostatném vláknu a díky tomu se v UI vláknu zobrazila alert message
+                {
+                    _selectedPage.Content = await JS.InvokeAsync<string>("getElementContentById", PAGE_CONTENT_ID);
+                });
+
+                _selectedPage.Title = _selectedPage.Title != string.Empty ? _selectedPage.Title.Trim() : "Nepojmenovaná stránka";
+                await ApiService.UpdatePageAsync(_selectedPage);
+            }
+            else
+            {
+                _selectedPage.SectionId = _selectedSection?.Id ?? throw new ArgumentNullException(nameof(_selectedSection), "Chyba při ukládání stránky. Zkuste to prosím znovu.");
+                await ApiService.AddPageAsync(_selectedPage);
+            }
+
+            _sections = await ApiService.GetSectionsAsync();
+            DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.Page);
+
+            SetSelectedTreeOptionsAfterSavingPage();
+            await JS.InvokeVoidAsync("setFocusById", PAGE_CONTENT_ID);
+
+            await ShowAlertMessageSuccessAsync("Stránka byla uložena", 800);
+        }
+        catch (JSException ex)
+        {
+            _ = ApiClient.SendErrorAsync(ex.ToString());
+        }
+        catch (Exception ex)
+        {
+            ShowAlertMessageError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Sets the selected tree options after saving a page.
+    /// </summary>
+    private void SetSelectedTreeOptionsAfterSavingPage()
+    {
+        if (_selectedPage is null)
+        {
+            return;
+        }
+
+        _isChangeAfterSavingPage = true;
+
+        if (_selectedPage.Id != 0)
+        {
+            _selectedPage = _sections.FirstOrDefault(section => section.Id == _selectedPage.SectionId)?.Pages.FirstOrDefault(x => x.Id == _selectedPage.Id);
+            _selectedTreeOptions = _selectedPage;
+            _pageSizeInBytes = _selectedPage is not null ? _selectedPage.SizeInBytes : 0;
+        }
+        else
+        {
+            _selectedPage = _sections.FirstOrDefault(section => section.Id == _selectedSection?.Id)?.Pages.LastOrDefault();
+            _selectedTreeOptions = _selectedPage;
+        }
+
+        StateHasChanged();
+        _isChangeAfterSavingPage = false;
+    }
+
+    /// <summary>
+    /// Handles the confirmation dialog for deleting a page.
+    /// </summary>
+    /// <param name="modalDialog">The confirmation dialog result.</param>
+    /// <returns></returns>
+    private async Task OnDialogDeletePage(ModalDialog modalDialog)
+    {
+        if (modalDialog == ModalDialog.Yes && _selectedPage is not null)
+        {
+            await DeletePageAsync(_selectedPage.Id);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a page asynchronously.
+    /// </summary>
+    /// <param name="pageId">The ID of the page to delete.</param>
+    /// <returns></returns>
+    private async Task DeletePageAsync(int pageId)
+    {
+        ShowAlertMessageInfo("Vymazávání stránky...");
+
+        try
+        {
+            await JS.InvokeVoidAsync("deleteElementContentById", PAGE_CONTENT_ID);
+            await ApiService.DeletePageAsync(pageId);
+
+            _sections = await ApiService.GetSectionsAsync();
+            DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.Section);
+
+            _selectedTreeOptions = _sections.FirstOrDefault(section => section.Id == _selectedPage?.SectionId);
+            _selectedPage = null;
+
+            await ShowAlertMessageSuccessAsync("Stránka byla vymazána", 800);
+        }
+        catch (JSException ex)
+        {
+            _ = ApiClient.SendErrorAsync(ex.ToString());
+        }
+        catch (Exception ex)
+        {
+            ShowAlertMessageError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Gets the title of the selected page.
+    /// </summary>
+    /// <returns>The title of the selected page, or an empty string if no page is selected.</returns>
+    private string GetSelectedPageTitle()
+    {
+        if (_selectedPage is not null && !string.IsNullOrEmpty(_selectedPage.Title))
+        {
+            return _selectedPage.Title;
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Gets the name of the selected section.
+    /// </summary>
+    /// <returns>The name of the selected section, or an empty string if no section is selected.</returns>
+    private string GetSelectedSectionName()
+    {
+        if (_selectedSection is not null && !string.IsNullOrEmpty(_selectedSection.Name))
+        {
+            return _selectedSection.Name;
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Displays or hides UI elements based on the selected tree options.
+    /// </summary>
+    /// <param name="selectedOptions">The selected tree options.</param>
+    private void DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions selectedOptions)
+    {
+        bool isDisplayPage = false;
+        bool isDisplaySection = false;
+        string displayProperty = "display: none;";
+
+        if (selectedOptions == SelectedTreeOptions.Page)
+        {
+            isDisplayPage = true;
+            displayProperty = string.Empty;
+        }
+
+        if (selectedOptions == SelectedTreeOptions.Section)
+        {
+            isDisplaySection = true;
+        }
+
+        _isVisibleButtonDeletePage = isDisplayPage;
+        _isVisibleButtonResetPage = isDisplayPage;
+        _isVisibleButtonSavePage = isDisplayPage;
+        _isVisibleInputTitlePage = isDisplayPage;
+        _isVisiblePageSize = isDisplayPage;
+        _isVisibleDropDownImageSize = isDisplayPage;
+        _isVisibleColorPicker = isDisplayPage;
+
+        _isVisibleButtonEditSection = isDisplaySection;
+        _isVisibleButtonDeleteSection = isDisplaySection;
+        _isVisibleButtonAddPage = isDisplaySection;
+
+        _setDisplayProperty = displayProperty;
+    }
+
+    /// <summary>
+    /// Gets the available image size options for inserting images into the page.
+    /// </summary>
+    /// <returns>The list of available image size options.</returns>
+    private List<ImageSizeOption> GetImageSizeOptions()
+    {
+        var options = new List<ImageSizeOption>();
+
+        options.Add(new ImageSizeOption("25 px", 25));
+
+        for (int i = 1; i <= 30; i++)
+        {
+            options.Add(new ImageSizeOption($"{50 * i} px", 50 * i));
+        }
+
+        return options;
+    }
+
+    /// <summary>
+    /// Gets the selected image size for inserting images into the page.
+    /// </summary>
+    /// <returns>The selected image size.</returns>
+    private int GetSelectedImageSize()
+    {
+        const int defaultSize = 25;
+        return _selectedImageSize != 0 ? _selectedImageSize : defaultSize;
+    }
+
+    /// <summary>
+    /// Shows an information message.
+    /// </summary>
+    /// <param name="message">The message to show.</param>
+    private void ShowAlertMessageInfo(string message)
+    {
+        ClearAlertMessage();
+        _alertMessages.Add(new AlertMessage() { Style = AlertStyle.Info, Text = message });
+    }
+
+    /// <summary>
+    /// Shows a success message with an optional delay.
+    /// </summary>
+    /// <param name="message">The message to show.</param>
+    /// <param name="delay">The optional delay in milliseconds before clearing the message.</param>
+    /// <returns></returns>
+    private async Task ShowAlertMessageSuccessAsync(string message, int delay = 0)
+    {
+        ClearAlertMessage();
+        _alertMessages.Add(new AlertMessage() { Style = AlertStyle.Success, Text = message });
+        StateHasChanged();
+        await Task.Delay(delay);
+        ClearAlertMessage();
+    }
+
+    /// <summary>
+    /// Shows an error message.
+    /// </summary>
+    /// <param name="message">The error message to show.</param>
+    private void ShowAlertMessageError(string message)
+    {
+        ClearAlertMessage();
+        _alertMessages.Add(new AlertMessage() { Style = AlertStyle.Danger, Text = message, ShowIcon = true, AllowClose = true });
+    }
+
+    /// <summary>
+    /// Clears all alert messages.
+    /// </summary>
+    private void ClearAlertMessage()
+    {
+        _alertMessages.Clear();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Shows a notification message.
+    /// </summary>
+    /// <param name="summary">The summary of the notification.</param>
+    /// <param name="detail">The detail of the notification.</param>
+    private void ShowNotification(string summary, string detail = "")
+    {
+        var message = new NotificationMessage()
+            {
+                Style = "position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);",
+                Severity = NotificationSeverity.Success,
+                Summary = summary,
+                Detail = detail
+            };
+
+        NotificationService.Notify(message);
+    }
+       
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _sections = await ApiService.GetSectionsAsync();
+            }
+            catch (Exception ex)
+            {
+                _alertMessages.Add(new AlertMessage() { Style = AlertStyle.Danger, Text = ex.Message, ShowIcon = true, AllowClose = true });
+            }
+
+            await JS.InvokeVoidAsync("setListenersDivContenteditable", PAGE_CONTENT_ID);
+
+            _isVisibleLoadingSpinner = false;
+
+            StateHasChanged();
+        }
+    }
+}
