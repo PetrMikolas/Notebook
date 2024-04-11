@@ -13,9 +13,7 @@ public class AutoMapperProfile : Profile
     /// Configures mappings between entities and DTOs.
     /// </summary>
     public AutoMapperProfile()
-    {
-        CreateMap<Section, Section>();
-        CreateMap<Page, Page>();
+    {     
         CreateMap<Section, SectionDto>();
         CreateMap<Page, PageDto>();      
         CreateMap<SectionDto, Section>();       
