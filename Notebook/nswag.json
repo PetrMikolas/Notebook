@@ -107,7 +107,7 @@
       "dateType": "System.DateTime",
       "jsonConverters": null,
       "anyType": "object",
-      "dateTimeType": "System.DateTime",
+      "dateTimeType": "System.DateTimeOffset",
       "timeType": "System.TimeSpan",
       "timeSpanType": "System.TimeSpan",
       "arrayType": "System.Collections.Generic.List",

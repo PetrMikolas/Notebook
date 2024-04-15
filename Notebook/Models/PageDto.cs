@@ -32,6 +32,16 @@ public class PageDto
     public long SizeInBytes { get; set; }
 
     /// <summary>
+    /// Gets or sets the creation date and time of the page.
+    /// </summary>
+    public DateTimeOffset CreatedDate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional modification date and time of the page.
+    /// </summary>
+    public DateTimeOffset? ModifiedDate { get; set; }
+
+    /// <summary>
     /// Gets or sets the identifier of the section to which the page belongs.
     /// </summary>
     public int SectionId { get; set; }

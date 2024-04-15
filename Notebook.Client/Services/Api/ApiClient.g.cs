@@ -1735,6 +1735,21 @@ namespace Notebook.Client.Services.Api
         public long SizeInBytes { get; set; }
 
         /// <summary>
+        /// Gets or sets the creation date and time of the page.
+        /// </summary>
+
+        [System.Text.Json.Serialization.JsonPropertyName("createdDate")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset CreatedDate { get; set; }
+
+        /// <summary>
+        /// Gets or sets the optional modification date and time of the page.
+        /// </summary>
+
+        [System.Text.Json.Serialization.JsonPropertyName("modifiedDate")]
+        public System.DateTimeOffset? ModifiedDate { get; set; }
+
+        /// <summary>
         /// Gets or sets the identifier of the section to which the page belongs.
         /// </summary>
 

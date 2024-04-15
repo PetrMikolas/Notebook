@@ -1,6 +1,5 @@
 ﻿namespace Notebook.Models;
 
-
 /// <summary>
 /// Represents a page in the notebook.
 /// </summary>

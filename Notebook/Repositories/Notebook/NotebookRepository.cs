@@ -17,7 +17,9 @@ internal sealed class NotebookRepository(NotebookDbContext dbContext) : INoteboo
                 Id = page.Id,
                 Title = page.Title,
                 SizeInBytes = page.SizeInBytes,
-                SectionId = page.SectionId
+                CreatedDate = page.CreatedDate,
+                ModifiedDate = page.ModifiedDate,
+                SectionId = page.SectionId                
             })
             .ToListAsync(cancellationToken);
 
