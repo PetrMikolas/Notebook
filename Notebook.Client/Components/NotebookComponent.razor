@@ -281,6 +281,7 @@
                 ClearAlertMessage();
                 DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.Section);
                 _selectedSection = section;
+                _selectedPage = null;
                 await JS.InvokeVoidAsync("deleteElementContentById", PAGE_CONTENT_ID);
             }
         }

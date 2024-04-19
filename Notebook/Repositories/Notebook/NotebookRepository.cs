@@ -9,21 +9,23 @@ internal sealed class NotebookRepository(NotebookDbContext dbContext) : INoteboo
 {
     public async Task<List<Section>> GetSectionsAsync(string userId, CancellationToken cancellationToken)
     {
-        var sections = await dbContext.Sections.AsNoTracking().Where(section => section.UserId == userId).ToListAsync(cancellationToken);
-
-        var pages = await dbContext.Pages.AsNoTracking()
-            .Select(page => new Page
+        var sections = await dbContext.Sections.AsNoTracking()
+        .Where(section => section.UserId == userId)
+        .Select(section => new Section
+        {
+            Id = section.Id,
+            Name = section.Name,            
+            Pages = section.Pages.Select(page => new Page
             {
                 Id = page.Id,
                 Title = page.Title,
                 SizeInBytes = page.SizeInBytes,
                 CreatedDate = page.CreatedDate,
                 ModifiedDate = page.ModifiedDate,
-                SectionId = page.SectionId                
-            })
-            .ToListAsync(cancellationToken);
-
-        sections.ForEach(section => section.Pages.AddRange(pages.Where(page => page.SectionId == section.Id)));
+                SectionId = page.SectionId,                
+            }).ToList()
+        })
+        .ToListAsync(cancellationToken);
 
         return sections;
     }

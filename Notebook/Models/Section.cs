@@ -21,7 +21,7 @@ public class Section
     public string UserId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the list of pages belonging to the section.
+    /// Gets or sets the list of pages belonging to the section.
     /// </summary>
-    public List<Page> Pages { get; } = [];
+    public List<Page> Pages { get; set; } = [];
 }
