@@ -14,6 +14,7 @@ public static class Utility
     {
         const int kilobyte = 1024;
         const int megabyte = 1024 * 1024;
+        const int gigabyte = 1024 * 1024 * 1024;
 
         if (bytes < kilobyte)
         {
@@ -23,9 +24,13 @@ public static class Utility
         {
             return $"{bytes / kilobyte} kB";
         }
-        else
+        else if (bytes < gigabyte)
         {
             return $"{bytes / (double)megabyte:F2} MB";
+        }
+        else
+        {
+            return $"{bytes / (double)gigabyte:F2} GB";
         }
     }
 }

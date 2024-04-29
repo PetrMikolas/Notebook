@@ -9,12 +9,12 @@ using System.Text;
 namespace Notebook.Services.Notebook;
 
 /// <summary>
-/// Service for managing notebook sections and pages.
+/// Service for managing notebook sections and pages based on the <seealso cref="INotebookService"/> interface.
 /// </summary>
 /// <param name="repository">The repository for accessing notebook data.</param>
 /// <param name="cache">The memory cache for storing notebook sections.</param>
 /// <param name="userService">Service responsible for managing user-related operations.</param>
-public class NotebookService(INotebookRepository repository, IMemoryCache cache, IUserService userService) : INotebookService
+internal sealed class NotebookService(INotebookRepository repository, IMemoryCache cache, IUserService userService) : INotebookService
 {    
 	public async Task<List<Section>> GetSectionsAsync(CancellationToken cancellationToken)
     {        

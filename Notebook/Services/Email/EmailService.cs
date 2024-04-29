@@ -7,17 +7,30 @@ using System.Text.Json;
 
 namespace Notebook.Services.Email;
 
-public sealed class EmailService : IEmailService
+/// <summary>
+/// Service for managing email-related operations, based on the <seealso cref="IEmailService"/> interface.
+/// </summary>
+internal sealed class EmailService : IEmailService
 {
     private readonly EmailOptions _options;
     private readonly ILogger<EmailService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EmailService"/> class.
+    /// </summary>
+    /// <param name="options">The email options.</param>
+    /// <param name="logger">The logger instance for logging errors and information.</param>
     public EmailService(IOptions<EmailOptions> options, ILogger<EmailService> logger)
     {
         _logger = logger;
         _options = InitializeOptions(options);
     }
 
+    /// <summary>
+    /// Initializes the email options from the provided configuration, handling any validation exceptions.
+    /// </summary>
+    /// <param name="options">The email configuration options.</param>
+    /// <returns>The initialized email options.</returns>
     private EmailOptions InitializeOptions(IOptions<EmailOptions> options)
     {
         try
@@ -35,17 +48,26 @@ public sealed class EmailService : IEmailService
 
         return new EmailOptions();
     }
-
+       
     public async Task SendErrorAsync(string errorMessage, CancellationToken cancellationToken = default)
     {
         await SendErrorMessageAsync(errorMessage, cancellationToken: cancellationToken);
     }
-
+    
     public async Task SendErrorAsync(string errorMessage, Type typeClass, string nameMethod, CancellationToken cancellationToken = default)
     {
         await SendErrorMessageAsync(errorMessage, typeClass, nameMethod, cancellationToken: cancellationToken);
     }
 
+    /// <summary>
+    /// Sends an error message asynchronously, optionally including information about the class and method where the error occurred.
+    /// </summary>
+    /// <param name="errorMessage">The error message to be sent.</param>
+    /// <param name="typeClass">The type of the class where the error occurred (optional).</param>
+    /// <param name="nameMethod">The name of the method where the error occurred (optional).</param>
+    /// <param name="cancellationToken">The cancellation token (optional). Defaults to <see cref="CancellationToken.None"/>.</param>
+    /// <exception cref="ArgumentException">Thrown when not all required method arguments are provided.</exception>
+    /// <returns>A task representing the asynchronous operation.</returns>
     private async Task SendErrorMessageAsync(string errorMessage, Type? typeClass = null, string nameMethod = "", CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(errorMessage, nameof(errorMessage));
@@ -60,7 +82,7 @@ public sealed class EmailService : IEmailService
 
         await SendEmailAsync(message, $"{_options.FromName} - error", _options.AdminEmailAddress, cancellationToken: cancellationToken);
     }
-
+    
     public async Task SendObjectAsync<TValue>(TValue value, string subject, CancellationToken cancellationToken = default) where TValue : class
     {
         ArgumentNullException.ThrowIfNull(value, nameof(value));
@@ -69,7 +91,7 @@ public sealed class EmailService : IEmailService
         var jsonValue = JsonSerializer.Serialize(value, options);
         await SendEmailAsync(jsonValue, subject, _options.AdminEmailAddress, cancellationToken: cancellationToken);
     }
-
+    
     public async Task SendEmailAsync(string message, string subject, string address, string name = "", TextFormat textFormat = TextFormat.Plain, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(address, nameof(address));

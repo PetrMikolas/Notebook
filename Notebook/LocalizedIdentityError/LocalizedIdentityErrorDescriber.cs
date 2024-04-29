@@ -5,7 +5,7 @@ namespace Notebook.LocalizedIdentityError;
 /// <summary>
 /// Provides localized error messages for identity errors in the Notebook application.
 /// </summary>
-public class LocalizedIdentityErrorDescriber : IdentityErrorDescriber
+public sealed class LocalizedIdentityErrorDescriber : IdentityErrorDescriber
 {
     public override IdentityError DuplicateEmail(string email)
     {

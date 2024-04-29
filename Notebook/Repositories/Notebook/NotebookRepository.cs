@@ -5,6 +5,9 @@ using Notebook.Models;
 
 namespace Notebook.Repositories.Notebook;
 
+/// <summary>
+/// Repository for managing notebook sections and pages in the database.
+/// </summary>
 internal sealed class NotebookRepository(NotebookDbContext dbContext) : INotebookRepository
 {
     public async Task<List<Section>> GetSectionsAsync(string userId, CancellationToken cancellationToken)

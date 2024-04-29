@@ -5,19 +5,15 @@ using System.Security.Claims;
 namespace Notebook.Services.User;
 
 /// <summary>
-/// Service responsible for managing user-related operations.
+/// Service responsible for managing user-related operations, implementing the <seealso cref="IUserService"/> interface.
 /// </summary>
-public class UserService(ILogger<UserService> logger) : IUserService
-{
+internal sealed class UserService(ILogger<UserService> logger) : IUserService
+{    
     /// <summary>
     /// Gets or sets the current user.
     /// </summary>
     public CurrentUser CurrentUser { get; set; } = new CurrentUser(string.Empty, string.Empty, false);
-
-    /// <summary>
-    /// Fetches the current user based on the claims principal.
-    /// </summary>
-    /// <param name="user">The claims principal representing the current user.</param>
+	    
     public void FetchCurrentUser(ClaimsPrincipal user)
 	{		
 		try

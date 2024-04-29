@@ -6,6 +6,9 @@ using Notebook.Models;
 
 namespace Notebook.Databases.Notebook;
 
+/// <summary>
+/// Database context for the notebook application, including tables for managing sections, pages, and user authentication.
+/// </summary>
 internal sealed class NotebookDbContext(DbContextOptions<NotebookDbContext> options) : IdentityDbContext<AppUser>(options)
 {
     public DbSet<Section> Sections => Set<Section>();
@@ -20,7 +23,7 @@ internal sealed class NotebookDbContext(DbContextOptions<NotebookDbContext> opti
             entity.HasIndex(p => p.Name);
             entity.Property(p => p.UserId).IsRequired().HasMaxLength(36);
             entity.Navigation(p => p.Pages).AutoInclude(false);
-            entity.HasMany(p => p.Pages).WithOne(p => p.Section).HasForeignKey(p => p.SectionId).OnDelete(DeleteBehavior.Cascade);            
+            entity.HasMany(p => p.Pages).WithOne(p => p.Section).HasForeignKey(p => p.SectionId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 

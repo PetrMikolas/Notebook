@@ -3,6 +3,10 @@ using Notebook.Shared.Exceptions;
 
 namespace Notebook.Client.Services.Api;
 
+/// <summary>
+///  Service for interacting with the notebook API, implementing the <see cref="IApiService"/> interface.
+/// </summary>
+/// <param name="apiClient">The API client.</param>
 public sealed class ApiService(IApiClient apiClient) : IApiService
 {
     public async Task<List<SectionDto>> GetSectionsAsync(CancellationToken cancellationToken = default)
