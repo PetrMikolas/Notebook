@@ -98,8 +98,7 @@ internal sealed class EmailService : IEmailService
 
         var mimeMessage = new MimeMessage();
         mimeMessage.From.Add(new MailboxAddress(_options.FromName, _options.FromEmailAddress));
-        mimeMessage.To.Add(new MailboxAddress(name, address));
-        mimeMessage.Bcc.Add(new MailboxAddress(_options.BccName, _options.BccEmailAddress));
+        mimeMessage.To.Add(new MailboxAddress(name, address));       
         mimeMessage.Subject = !string.IsNullOrEmpty(subject) ? subject : _options.DefaultSubject;
         mimeMessage.Body = new TextPart(textFormat) { Text = message ?? string.Empty };
 

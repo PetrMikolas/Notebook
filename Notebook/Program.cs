@@ -102,6 +102,6 @@ app.MapAdditionalIdentityEndpoints();
 
 // minimal API
 app.MapEndpointsNotebook();
-app.MapEndpointsErrorClient();
+app.MapEndpointsClientErrors();
 
 app.Run();

@@ -9,7 +9,7 @@ using Notebook.Shared.Exceptions;
 namespace Notebook.Api.Notebook;
 
 /// <summary>
-/// Provides extension methods for mapping endpoints related to notebook operations in the API.
+/// Extension method for registering notebook API endpoints.
 /// </summary>
 public static class ApiNotebooksRegistrationExtensions
 {

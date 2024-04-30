@@ -4,21 +4,21 @@ using Notebook.Services.Email;
 namespace Notebook.Api.ErrorClient;
 
 /// <summary>
-/// Provides extension methods for mapping endpoints related to error handling and reporting from the client to the server.
+/// Extension method for registering client errors API endpoints.
 /// </summary>
-public static class ApiErrorsClientRegistrationExtensions
+public static class ApiClientErrorsRegistrationExtensions
 {
     /// <summary>
-    /// Maps an endpoint for reporting errors from the client to the server.
+    /// Maps an endpoint for reporting client errors to the server.
     /// </summary>
     /// <param name="app">The web application.</param>
-    /// <returns>The web application with mapped endpoint for error reporting.</returns>
-    public static WebApplication MapEndpointsErrorClient(this WebApplication app)
+    /// <returns>The web application with mapped endpoint for reporting errors.</returns>
+    public static WebApplication MapEndpointsClientErrors(this WebApplication app)
     {
         app.MapPost("errors", ([FromBody] string errorMessage, [FromServices] IEmailService email, CancellationToken cancellationToken) =>
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Error: {errorMessage}");            
+            Console.WriteLine($"Error: {errorMessage}");
             Console.ResetColor();
 
             _ = email.SendErrorAsync(errorMessage, cancellationToken);
