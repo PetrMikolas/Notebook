@@ -8,7 +8,15 @@ Naprogramováno v jazyce C# v prostředí Microsoft .NET 8
 - API - Minimal API
 - API dokumentace - OpenAPI
 - ApiClient - NSwag
-- Databáze - Entity Framework Core code-first
+- Databáze - Microsoft SQL Server (MS SQL)
+- ORM - Entity Framework Core (code-first)
+- Nasazení - Docker kontejner (pomocí Docker Compose)
 - Sledování chyb - Sentry
 
 ![Screenshot](Screenshots/Notebook_1.png)
+![Screenshot](Screenshots/Notebook_2.png)
+![Screenshot](Screenshots/Notebook_3.png)
+![Screenshot](Screenshots/Notebook_4.png)
+![Screenshot](Screenshots/Notebook_5.png)
+![Screenshot](Screenshots/Notebook_6.png)
+![Screenshot](Screenshots/Notebook_7.png)
