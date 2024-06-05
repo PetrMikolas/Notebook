@@ -1,15 +1,14 @@
-version: "3.4"
-  
-services:   
-  server:
-    image: notebook
+version: "3" 
+
+services:  
+  notebook:    
     container_name: notebook
-    restart: unless-stopped
-    build:
-      context: .
-      dockerfile: notebook/Dockerfile  
+    image: dockerhub.petrmikolas.cz/notebook:latest   
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production       
-    ports:   
-      - "6500:8080"  
-      - "6501:8081"
+     - ASPNETCORE_ENVIRONMENT=Production    
+     - LANG=C.UTF-8   
+    restart: unless-stopped      
+    ports:
+      - 6600:8080  
+      - 6601:8081   
+    network_mode: bridge 
