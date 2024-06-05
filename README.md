@@ -10,7 +10,7 @@ Naprogramováno v jazyce C# v prostředí Microsoft .NET 8
 - ApiClient - NSwag
 - Databáze - Microsoft SQL Server (MS SQL)
 - ORM - Entity Framework Core (code-first)
-- Nasazení - Docker kontejner (pomocí Docker Compose)
+- Nasazení - Docker kontejner pomocí Docker Compose
 - Sledování chyb - Sentry
 
 ![Screenshot](Screenshots/Notebook_1.png)
