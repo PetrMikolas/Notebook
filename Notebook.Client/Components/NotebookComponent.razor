@@ -4,6 +4,8 @@
 @using Notebook.Client.Models
 @using Notebook.Client.Services.Api
 @using Microsoft.AspNetCore.Authorization
+@using System.ComponentModel
+@using System.Reflection
 @using static Notebook.Client.Components.ModalFontSettings
 @using static Notebook.Client.Components.ModalSection
 
@@ -35,9 +37,14 @@
             </div>
 
             <div id="side-panel-header">
-                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="0">
-                    <RadzenButton Click=@Refresh Shade="Shade.Lighter" Size="ButtonSize.Small" Icon="cached" ButtonStyle="ButtonStyle.Success" Style="height:28.5px; width:30px; margin:12px 0 10px;" title="Obnovit" />
-                    <RadzenTextBox id="input-search" @oninput=@OnInputSearch Value=@_inputSearchText MaxLength="30" Placeholder="Vyhledat oddíl nebo stránku" Style="height:30px; width:216px; margin:12px 0 10px; padding:0px 6px; outline:none;" />
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="12" Style="display:flex; padding:11px 16px;">
+                    <RadzenButton Click=@Refresh Shade="Shade.Lighter" Size="ButtonSize.Small" Icon="cached" ButtonStyle="ButtonStyle.Success" title="Obnovit seznam (rozbalit/sbalit)" />
+                    <RadzenTextBox id="input-search" @oninput=@OnInputSearch Value=@_inputSearchText MaxLength="30" Placeholder="Vyhledat oddíl nebo stránku" Style="flex:1; height:30px; padding:0px 6px; outline:none;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="4" Style="display:flex; padding:0 16px 4px;">
+                    <span>Řadit dle:</span>
+                    <RadzenDropDown @bind-Value=@_sortOrder Data="@GetSortOrderOptions()" TextProperty="Key" ValueProperty="Value" Change=@OnSortSections Style="flex:1; height:30px; padding: 3px 6px; font-family: Calibri;" title="Vyberte způsob řazení oddílů" />
                 </RadzenStack>
             </div>
 
@@ -144,6 +151,57 @@
     private List<AlertMessage> _alertMessages = [];
     private const string PAGE_CONTENT_ID = "page-content";
     private record ImageSizeOption(string Option, int Value);
+    private SortOrder _sortOrder = SortOrder.ByDateAsc;
+
+    private void OnSortSections(object value)
+    {
+        if (value is not SortOrder sortOrder)
+        {
+            sortOrder = SortOrder.ByDateAsc; // Defaultní řazení
+        }
+
+        _sections = sortOrder switch
+        {
+            SortOrder.ByDateDesc => _sections.OrderByDescending(item => item.Id).ToList(),
+            SortOrder.ByNameAsc => _sections.OrderBy(item => item.Name).ToList(),
+            SortOrder.ByNameDesc => _sections.OrderByDescending(item => item.Name).ToList(),
+            _ => _sections.OrderBy(item => item.Id).ToList()
+        };        
+    }      
+
+    private enum SortOrder
+    {
+        [Description("data vytvoření ↑")]
+        ByDateAsc,
+
+        [Description("data vytvoření ↓")]
+        ByDateDesc,
+
+        [Description("názvu ↑")]
+        ByNameAsc,
+
+        [Description("názvu ↓")]
+        ByNameDesc
+    }
+
+    private string GetDescriptionFromEnum(Enum value)
+    {
+        var field = value.GetType().GetField(value.ToString());
+
+        if (field is not null && field.GetCustomAttribute<DescriptionAttribute>() is DescriptionAttribute attribute)
+        {
+            return attribute.Description;
+        }
+
+        return value.ToString();
+    }
+
+    private IEnumerable<KeyValuePair<string, SortOrder>> GetSortOrderOptions()
+    {
+        return Enum.GetValues(typeof(SortOrder))
+                   .Cast<SortOrder>()
+                   .Select(enumValue => new KeyValuePair<string, SortOrder>(GetDescriptionFromEnum(enumValue), enumValue));
+    }
 
     /// <summary>
     /// Sets the expanded state of the tree node based on the selected section.
@@ -219,6 +277,7 @@
         _selectedSection = null;
         _sections = await ApiService.GetSectionsAsync();
         _isTreeExpanded = !_isTreeExpanded;
+        _sortOrder = SortOrder.ByDateAsc;
         DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.None);
 
         try
