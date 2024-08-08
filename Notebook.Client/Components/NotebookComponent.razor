@@ -23,7 +23,7 @@
     <Authorized>
         <AntiforgeryToken />
 
-        <div class="wrapper">
+        <div id="wrapper">
             <div id="header">
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Left" Class="rz-unselectable-text rz-m-3 rz-ms-4">
                     <RadzenButton Click=@(() => OpenModalSection(Operation.Create)) Shade="Shade.Lighter" Text="Nový oddíl" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" title="Vytvořit oddíl" />
@@ -37,12 +37,12 @@
             </div>
 
             <div id="side-panel-header">
-                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="12" Style="display:flex; padding:11px 16px;">
-                    <RadzenButton Click=@Refresh Shade="Shade.Lighter" Size="ButtonSize.Small" Icon="cached" ButtonStyle="ButtonStyle.Success" title="Obnovit seznam (rozbalit/sbalit)" />
-                    <RadzenTextBox id="input-search" @oninput=@OnInputSearch Value=@_inputSearchText MaxLength="30" Placeholder="Vyhledat oddíl nebo stránku" Style="flex:1; height:30px; padding:0px 6px; outline:none;" />
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="12" Style="padding:11px 16px;">
+                    <RadzenButton Click=@Refresh Shade="Shade.Lighter" Size="ButtonSize.Small" Icon="cached" ButtonStyle="ButtonStyle.Success" Style="height:28.5px; width:30px;" title="Obnovit seznam (rozbalit/sbalit)" />
+                    <RadzenTextBox id="input-search" @oninput=@OnInputSearch Value=@_inputSearchText MaxLength="30" Style="height:30px; width:200px; padding:0px 6px; outline:none;" Placeholder="Vyhledat oddíl nebo stránku" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="4" Style="display:flex; padding:0 16px 4px;">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="4" Style="padding:0px 16px 12px; display: flex;">
                     <span>Řadit dle:</span>
                     <RadzenDropDown @bind-Value=@_sortOrder Data="@GetSortOrderOptions()" TextProperty="Key" ValueProperty="Value" Change=@OnSortSections Style="flex:1; height:30px; padding: 3px 6px; font-family: Calibri;" title="Vyberte způsob řazení oddílů" />
                 </RadzenStack>
@@ -65,10 +65,10 @@
                     <RadzenButton Click=@ResetPage Shade="Shade.Lighter" Text="Resetovat" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" title="Resetovat stránku" />
                     <RadzenButton Click=@(() => _isOpenModalDialogPage = true) Shade="Shade.Lighter" Text="Odstranit" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" title="Odstranit stránku" />
 
-                    <input type="file" id="input-image" accept="image/*" onchange="insertImageToDiv(this.id, 'page-content', @GetSelectedImageSize())" hidden />
+                    <input id="input-image" type="file" accept="image/*" onchange="insertImageToDiv(this.id, 'page-content', @GetSelectedImageSize())" hidden />
                     <label class="rz-button rz-button-sm rz-variant-filled rz-info rz-shade-lighter icon" for="input-image" title="Nahrát obrázek"><i class="fas fa-upload me-1"></i>OBRÁZEK</label>
 
-                    <RadzenDropDown @bind-Value=@_selectedImageSize Data=@GetImageSizeOptions() TextProperty="Option" ValueProperty="Value" Placeholder="Výška obrázku" Style="width:145px; height:30px; padding: 3px 6px; font-family: Calibri;" />
+                    <RadzenDropDown @bind-Value=@_selectedImageSize Data=@GetImageSizeOptions() TextProperty="Option" ValueProperty="Value" Style="width:145px; height:30px; padding: 3px 6px; font-family: Calibri;" Placeholder="Výška obrázku" title="Vyberte max. výšku vkládaného obrázku (výchozí je 25px)" />
 
                     <button @onclick=@(() => _isOpenModalFontSettings = true) style="height: 30px; padding: 0; border: 1px solid lightgrey; border-radius: 4px; overflow: hidden;" title="Nastavit písmo">
                         <img src="images\font.png" style="width: 100%; height: 100%; padding:6px; background-color:white; pointer-events: none;">

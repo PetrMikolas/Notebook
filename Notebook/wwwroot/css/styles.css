@@ -61,9 +61,9 @@
 
 /*------------------------------ Grid ---------------------------*/
 
-.wrapper {
+#wrapper {
     display: grid;
-    grid-template-rows: 52px 52px 38px 1fr 52px;
+    grid-template-rows: 52px 52px 42px 1fr 52px;
     grid-template-columns: 275px minmax(1125px, 1fr);
     grid-template-areas:
         'header header'
@@ -84,13 +84,12 @@
 }
 
 #side-panel-header {
-    grid-area: side-panel-header;
-    /*border-bottom: 1px solid lightgrey;*/
+    grid-area: side-panel-header;    
     border-right: 1px solid grey;
     user-select: none;
     font-family: Calibri;
     background-color: white;
-    z-index: 2;
+    z-index: 2; 
 }
 
 #side-panel {
@@ -105,8 +104,7 @@
 }
 
 #page-header {
-    grid-area: page-header;
-    /*border-bottom: 1px solid lightgrey;*/
+    grid-area: page-header;    
     user-select: none;
     box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.4);
     z-index: 1;
@@ -123,7 +121,6 @@
 
 #page-footer {
     grid-area: page-footer;
- /*   border-top: 1px solid lightgrey;*/
     background-color: rgb(240, 240, 240);
     user-select: none;
     box-shadow: 0px -2px 8px rgba(0, 0, 0, 0.4);
