@@ -74,7 +74,22 @@
                         <img src="images\font.png" style="width: 100%; height: 100%; padding:6px; background-color:white; pointer-events: none;">
                     </button>
                 </RadzenStack>
+            </div>
+            
+            <div id=@PAGE_CONTENT_ID contenteditable="true" style="@_setDisplayProperty;" ondragover="handleDragOver(event)" ondrop="handleDrop(event, @GetSelectedImageSize())">
+            </div>
 
+            <div id="page-footer">
+                @if (_selectedPage is not null && !_isSelectedSection)
+                {
+                    <span class="ms-3 page-footer-content" title="Název oddílu a titulek stránky">@GetSectionNameById(_selectedPage.SectionId) &#10784; @_selectedPage.Title</span>
+                    <span class="page-footer-content" title="Datum a čas vytvoření stránky">Vytvořeno: @_selectedPage.CreatedDate.LocalDateTime</span>
+                    @if (_selectedPage.ModifiedDate is not null)
+                    {
+                        <span class="page-footer-content" title="Datum a čas upravení stránky">Upraveno: @_selectedPage.ModifiedDate!.Value.LocalDateTime</span>
+                    }
+                    <span class="page-footer-content" title="Velikost stránky">Velikost: @Utility.FormatBytes(_pageSizeInBytes)</span>
+                }
             </div>
 
             <div id="alert-message">
@@ -87,22 +102,6 @@
                     </RadzenStack>
                 }
             </div>
-
-            <div id=@PAGE_CONTENT_ID contenteditable="true" style="@_setDisplayProperty;" ondragover="handleDragOver(event)" ondrop="handleDrop(event, @GetSelectedImageSize())">
-            </div>
-
-            <RadzenStack id="page-footer" Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="14">
-                @if (_selectedPage is not null && !_isSelectedSection)
-                {
-                    <span class="ms-3 page-footer-content" title="Název oddílu a titulek stránky">@GetSectionNameById(_selectedPage.SectionId) &#10784; @_selectedPage.Title</span>
-                    <span class="page-footer-content" title="Datum a čas vytvoření stránky">Vytvořeno: @_selectedPage.CreatedDate.LocalDateTime</span>
-                    @if (_selectedPage.ModifiedDate is not null)
-                    {
-                        <span class="page-footer-content" title="Datum a čas upravení stránky">Upraveno: @_selectedPage.ModifiedDate!.Value.LocalDateTime</span>
-                    }
-                    <span class="page-footer-content" title="Velikost stránky">Velikost: @Utility.FormatBytes(_pageSizeInBytes)</span>
-                }
-            </RadzenStack>
         </div>
 
         <ModalSection @bind-IsOpen=@_isOpenModalSection
