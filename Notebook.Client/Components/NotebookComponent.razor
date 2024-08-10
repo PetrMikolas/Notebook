@@ -75,16 +75,17 @@
                     </button>
                 </RadzenStack>
 
-                <div id="alert-message" style="position:absolute;">
-                    @foreach (var message in _alertMessages)
-                    {
-                        <RadzenStack Orientation="Orientation.Horizontal" Gap="16px" class="rz-unselectable-text">
-                            <RadzenAlert AlertStyle="message.Style" Variant="Variant.Filled" Shade="Shade.Default" Size="AlertSize.Small" ShowIcon="message.ShowIcon" AllowClose="message.AllowClose" class="rz-ms-4 rz-me-4 rz-mt-4 rz-mb-0">
-                                @message.Text
-                            </RadzenAlert>
-                        </RadzenStack>
-                    }
-                </div>
+            </div>
+
+            <div id="alert-message">
+                @foreach (var message in _alertMessages)
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" Gap="16px" class="rz-unselectable-text">
+                        <RadzenAlert AlertStyle="message.Style" Variant="Variant.Filled" Shade="Shade.Default" Size="AlertSize.Small" ShowIcon="message.ShowIcon" AllowClose="message.AllowClose" class="rz-ms-4 rz-me-4 rz-mt-4 rz-mb-0">
+                            @message.Text
+                        </RadzenAlert>
+                    </RadzenStack>
+                }
             </div>
 
             <div id=@PAGE_CONTENT_ID contenteditable="true" style="@_setDisplayProperty;" ondragover="handleDragOver(event)" ondrop="handleDrop(event, @GetSelectedImageSize())">
@@ -166,8 +167,8 @@
             SortOrder.ByNameAsc => _sections.OrderBy(item => item.Name).ToList(),
             SortOrder.ByNameDesc => _sections.OrderByDescending(item => item.Name).ToList(),
             _ => _sections.OrderBy(item => item.Id).ToList()
-        };        
-    }      
+        };
+    }
 
     private enum SortOrder
     {
@@ -263,7 +264,17 @@
     /// <returns></returns>
     private async Task OnSubmitFontSettings(FontSettings fontSettings)
     {
-        await JS.InvokeVoidAsync("applyFontSettings", fontSettings.Family, fontSettings.Size, fontSettings.Weight, fontSettings.Style, fontSettings.Color, fontSettings.Background, PAGE_CONTENT_ID);
+        await JS.InvokeVoidAsync(
+            "applyFontSettings",
+            fontSettings.Family,
+            fontSettings.Size,
+            fontSettings.Weight,
+            fontSettings.Style,
+            fontSettings.Color,
+            fontSettings.Background,
+            PAGE_CONTENT_ID
+        );
+
         StateHasChanged();
     }
 
@@ -324,7 +335,7 @@
             if (_selectedTreeOptions is PageDto page && !_isChangeAfterSavingPage)
             {
                 DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.Page);
-                ShowAlertMessageInfo($"Načítání stránky \"{page.Title}\"");
+                await ShowAlertMessageAsync("Načítání stránky...", AlertStyle.Info);
 
                 _selectedPage = page;
                 _pageSizeInBytes = page.SizeInBytes;
@@ -346,12 +357,12 @@
         }
         catch (JSException ex)
         {
-            ShowAlertMessageError("Neočekávaná chyba. O problému víme a pracujeme na nápravě.");
+            await ShowAlertMessageAsync("Neočekávaná chyba. O problému víme a pracujeme na nápravě.", AlertStyle.Danger, true, true);
             _ = ApiClient.SendErrorAsync(ex.ToString());
         }
         catch (Exception ex)
         {
-            ShowAlertMessageError(ex.Message);
+            await ShowAlertMessageAsync(ex.Message, AlertStyle.Danger, true, true);
         }
     }
 
@@ -402,11 +413,11 @@
             _sections = await ApiService.GetSectionsAsync();
             SetSelectedTreeOptionsAfterSavingSection();
 
-            await ShowAlertMessageSuccessAsync("Oddíl byl uložen", 800);
+            await ShowAlertMessageAsync("Oddíl byl uložen", AlertStyle.Success, delay: 800);
         }
         catch (Exception ex)
         {
-            ShowAlertMessageError(ex.Message);
+            await ShowAlertMessageAsync(ex.Message, AlertStyle.Danger, true, true);
         }
     }
 
@@ -450,7 +461,7 @@
     /// <returns></returns>
     private async Task DeleteSectionAsync(int sectionId)
     {
-        ShowAlertMessageInfo("Vymazávání oddílu...");
+        await ShowAlertMessageAsync("Vymazávání oddílu...", AlertStyle.Info);
 
         try
         {
@@ -460,11 +471,11 @@
             _sections = await ApiService.GetSectionsAsync();
             DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.None);
 
-            await ShowAlertMessageSuccessAsync("Oddíl byl vymazán", 800);
+            await ShowAlertMessageAsync("Oddíl byl vymazán", AlertStyle.Success, delay: 800);
         }
         catch (Exception ex)
         {
-            ShowAlertMessageError(ex.Message);
+            await ShowAlertMessageAsync(ex.Message, AlertStyle.Danger, true, true);
         }
     }
 
@@ -492,7 +503,7 @@
             return;
         }
 
-        ShowAlertMessageInfo("Ukládání stránky...");
+        await ShowAlertMessageAsync("Ukládání stránky...", AlertStyle.Info);
 
         try
         {
@@ -503,12 +514,17 @@
                     _selectedPage.Content = await JS.InvokeAsync<string>("getElementContentById", PAGE_CONTENT_ID);
                 });
 
-                _selectedPage.Title = _selectedPage.Title != string.Empty ? _selectedPage.Title.Trim() : "Nepojmenovaná stránka";
+                _selectedPage.Title = _selectedPage.Title != string.Empty
+                    ? _selectedPage.Title.Trim()
+                    : "Nepojmenovaná stránka";
+
                 await ApiService.UpdatePageAsync(_selectedPage);
             }
             else
             {
-                _selectedPage.SectionId = _selectedSection?.Id ?? throw new ArgumentNullException(nameof(_selectedSection), "Chyba při ukládání stránky. Zkuste to prosím znovu.");
+                _selectedPage.SectionId = _selectedSection?.Id
+                    ?? throw new ArgumentNullException(nameof(_selectedSection), "Chyba při ukládání stránky. Zkuste to prosím znovu.");
+
                 await ApiService.AddPageAsync(_selectedPage);
             }
 
@@ -518,7 +534,7 @@
             SetSelectedTreeOptionsAfterSavingPage();
             await JS.InvokeVoidAsync("setFocusById", PAGE_CONTENT_ID);
 
-            await ShowAlertMessageSuccessAsync("Stránka byla uložena", 800);
+            await ShowAlertMessageAsync("Stránka byla uložena", AlertStyle.Success, delay: 800);
         }
         catch (JSException ex)
         {
@@ -526,7 +542,7 @@
         }
         catch (Exception ex)
         {
-            ShowAlertMessageError(ex.Message);
+            await ShowAlertMessageAsync(ex.Message, AlertStyle.Danger, true, true);
         }
     }
 
@@ -578,7 +594,7 @@
     /// <returns></returns>
     private async Task DeletePageAsync(int pageId)
     {
-        ShowAlertMessageInfo("Vymazávání stránky...");
+        await ShowAlertMessageAsync("Vymazávání stránky...", AlertStyle.Info);
 
         try
         {
@@ -591,7 +607,7 @@
             _selectedTreeOptions = _sections.FirstOrDefault(section => section.Id == _selectedPage?.SectionId);
             _selectedPage = null;
 
-            await ShowAlertMessageSuccessAsync("Stránka byla vymazána", 800);
+            await ShowAlertMessageAsync("Stránka byla vymazána", AlertStyle.Success, delay: 800);
         }
         catch (JSException ex)
         {
@@ -599,7 +615,7 @@
         }
         catch (Exception ex)
         {
-            ShowAlertMessageError(ex.Message);
+            await ShowAlertMessageAsync(ex.Message, AlertStyle.Danger, true, true);
         }
     }
 
@@ -694,38 +710,30 @@
     }
 
     /// <summary>
-    /// Shows an information message.
+    /// Shows an alert message with the specified style and options.
     /// </summary>
     /// <param name="message">The message to show.</param>
-    private void ShowAlertMessageInfo(string message)
-    {
-        ClearAlertMessage();
-        _alertMessages.Add(new AlertMessage() { Style = AlertStyle.Info, Text = message });
-    }
-
-    /// <summary>
-    /// Shows a success message with an optional delay.
-    /// </summary>
-    /// <param name="message">The message to show.</param>
+    /// <param name="style">The style of the alert (e.g., Info, Danger).</param>
+    /// <param name="showIcon">Indicates whether to show an icon (default is false).</param>
+    /// <param name="allowClose">Indicates whether the alert can be closed (default is false).</param>
     /// <param name="delay">The optional delay in milliseconds before clearing the message.</param>
-    /// <returns></returns>
-    private async Task ShowAlertMessageSuccessAsync(string message, int delay = 0)
+    private async Task ShowAlertMessageAsync(string message, AlertStyle style, bool showIcon = false, bool allowClose = false, int delay = 0)
     {
         ClearAlertMessage();
-        _alertMessages.Add(new AlertMessage() { Style = AlertStyle.Success, Text = message });
-        StateHasChanged();
-        await Task.Delay(delay);
-        ClearAlertMessage();
-    }
+        _alertMessages.Add(new AlertMessage
+            {
+                Style = style,
+                Text = message,
+                ShowIcon = showIcon,
+                AllowClose = allowClose
+            });
 
-    /// <summary>
-    /// Shows an error message.
-    /// </summary>
-    /// <param name="message">The error message to show.</param>
-    private void ShowAlertMessageError(string message)
-    {
-        ClearAlertMessage();
-        _alertMessages.Add(new AlertMessage() { Style = AlertStyle.Danger, Text = message, ShowIcon = true, AllowClose = true });
+        if (delay > 0)
+        {
+            StateHasChanged();
+            await Task.Delay(delay);
+            ClearAlertMessage();
+        }
     }
 
     /// <summary>
@@ -765,7 +773,7 @@
             }
             catch (Exception ex)
             {
-                _alertMessages.Add(new AlertMessage() { Style = AlertStyle.Danger, Text = ex.Message, ShowIcon = true, AllowClose = true });
+                await ShowAlertMessageAsync(ex.Message, AlertStyle.Danger, true, true);
             }
 
             await JS.InvokeVoidAsync("setListenersDivContenteditable", PAGE_CONTENT_ID);

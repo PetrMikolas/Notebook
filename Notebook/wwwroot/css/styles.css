@@ -84,12 +84,12 @@
 }
 
 #side-panel-header {
-    grid-area: side-panel-header;    
+    grid-area: side-panel-header;
     border-right: 1px solid grey;
     user-select: none;
     font-family: Calibri;
     background-color: white;
-    z-index: 2; 
+    z-index: 2;
 }
 
 #side-panel {
@@ -104,7 +104,7 @@
 }
 
 #page-header {
-    grid-area: page-header;    
+    grid-area: page-header;
     user-select: none;
     box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.4);
     z-index: 1;
@@ -124,14 +124,20 @@
     background-color: rgb(240, 240, 240);
     user-select: none;
     box-shadow: 0px -2px 8px rgba(0, 0, 0, 0.4);
-    z-index:1;
+    z-index: 1;
 }
 
 .page-footer-content {
     background-color: white;
     border: 1px solid lightgrey;
     border-radius: 4px;
-    padding: 2px 10px;    
+    padding: 2px 10px;
+}
+
+#alert-message {
+    position: absolute;
+    top: 156px;
+    left: 275px;
 }
 
 .dragover {
