@@ -44,7 +44,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="4" Style="padding:0px 16px 12px; display: flex;">
                     <span>Řadit dle:</span>
-                    <RadzenDropDown @bind-Value=@_sortOrder Data="@GetSortOrderOptions()" TextProperty="Key" ValueProperty="Value" Change=@OnSortSections Style="flex:1; height:30px; padding: 3px 6px; font-family: Calibri;" title="Vyberte způsob řazení oddílů" />
+                    <RadzenDropDown @bind-Value=@_sortOrder Data="@(GetEnumValuesWithDescriptions<SortOrder>())" TextProperty="Key" ValueProperty="Value" Change=@OnSortSections Style="flex:1; height:30px; padding: 3px 6px; font-family: Calibri;" title="Vyberte způsob řazení oddílů" />
                 </RadzenStack>
             </div>
 
@@ -161,6 +161,10 @@
     private record ImageSizeOption(string Option, int Value);
     private SortOrder _sortOrder = SortOrder.ByDateAsc;
 
+    /// <summary>
+    /// Sorts the sections based on the specified sort order.
+    /// </summary>
+    /// <param name="value">The sort order to apply. If not specified, the sections are sorted by date in ascending order by default.</param>
     private void OnSortSections(object value)
     {
         if (value is not SortOrder sortOrder)
@@ -177,38 +181,66 @@
         };
     }
 
+    /// <summary>
+    /// Defines the various sorting orders available for sorting data.
+    /// </summary>
     private enum SortOrder
     {
+        /// <summary>
+        /// Sorts data by creation date in ascending order.
+        /// </summary>
         [Description("data vytvoření ↑")]
         ByDateAsc,
 
+        /// <summary>
+        /// Sorts data by creation date in descending order.
+        /// </summary>
         [Description("data vytvoření ↓")]
         ByDateDesc,
 
+        /// <summary>
+        /// Sorts data by name in ascending order.
+        /// </summary>
         [Description("názvu ↑")]
         ByNameAsc,
 
+        /// <summary>
+        /// Sorts data by name in descending order.
+        /// </summary>
         [Description("názvu ↓")]
         ByNameDesc
     }
 
+
+    /// <summary>
+    /// Retrieves the description of the specified enum <paramref name="value"/>.
+    /// </summary>
+    /// <param name="value">The enum value for which to retrieve the description.</param>
+    /// <returns>
+    /// The description of the enum value if a <see cref="DescriptionAttribute"/> is present, otherwise the string representation of the enum value.    
+    /// </returns>
     private string GetDescriptionFromEnum(Enum value)
     {
         var field = value.GetType().GetField(value.ToString());
 
-        if (field is not null && field.GetCustomAttribute<DescriptionAttribute>() is DescriptionAttribute attribute)
+        if (field?.GetCustomAttribute<DescriptionAttribute>() is DescriptionAttribute attribute)
         {
             return attribute.Description;
         }
 
         return value.ToString();
-    }
+    }     
 
-    private IEnumerable<KeyValuePair<string, SortOrder>> GetSortOrderOptions()
+    /// <summary>
+    /// Retrieves a collection of key-value pairs where each pair represents an enum value and its corresponding description.
+    /// </summary>
+    /// <typeparam name="TEnum">The type of the enum to retrieve values and descriptions for.</typeparam>
+    /// <returns>A collection of <see cref="KeyValuePair{string, TEnum}"/> where each key is the description of the enum value and each value is the enum value itself.</returns>
+    private IEnumerable<KeyValuePair<string, TEnum>> GetEnumValuesWithDescriptions<TEnum>() where TEnum : Enum
     {
-        return Enum.GetValues(typeof(SortOrder))
-                   .Cast<SortOrder>()
-                   .Select(enumValue => new KeyValuePair<string, SortOrder>(GetDescriptionFromEnum(enumValue), enumValue));
+        return Enum.GetValues(typeof(TEnum))
+                   .Cast<TEnum>()
+                   .Select(enumValue => new KeyValuePair<string, TEnum>(GetDescriptionFromEnum(enumValue), enumValue));
     }
 
     /// <summary>
@@ -236,13 +268,14 @@
     /// <summary>
     /// Handles the input search event to filter sections and pages based on the search text.
     /// </summary>
-    /// <param name="args">The event arguments containing the search text.</param>
-    /// <returns></returns>
+    /// <param name="args">The event arguments containing the search text.</param>    
     private async Task OnInputSearch(ChangeEventArgs args)
     {
-        if (args.Value is not null && !string.IsNullOrWhiteSpace(args.Value.ToString()!))
+        var input = args.Value?.ToString();
+
+        if (!string.IsNullOrWhiteSpace(input))
         {
-            _sections = await ApiService.SearchValuesAsync(args.Value.ToString()!.Trim());
+            _sections = await ApiService.SearchValuesAsync(input.Trim());
             _isTreeExpanded = true;
         }
         else
@@ -258,17 +291,16 @@
     /// <param name="args">The event arguments containing the new title.</param>
     private void OnInputTitle(ChangeEventArgs args)
     {
-        if (args.Value is not null && _selectedPage is not null)
+        if (_selectedPage is not null)
         {
-            _selectedPage.Title = args.Value.ToString()!;
+            _selectedPage.Title = args.Value?.ToString() ?? string.Empty;
         }
     }
 
     /// <summary>
     /// Handles the font settings submission event to apply the selected font settings to the page content.
     /// </summary>
-    /// <param name="fontSettings">The font settings to apply.</param>
-    /// <returns></returns>
+    /// <param name="fontSettings">The font settings to apply.</param>    
     private async Task OnSubmitFontSettings(FontSettings fontSettings)
     {
         await JS.InvokeVoidAsync(
@@ -287,8 +319,7 @@
 
     /// <summary>
     /// Refreshes the section list by reloading the sections and resetting the selected page and section.
-    /// </summary>
-    /// <returns></returns>
+    /// </summary>    
     private async Task Refresh()
     {
         _selectedPage = null;
@@ -310,8 +341,7 @@
 
     /// <summary>
     /// Resets the selected page by clearing its content.
-    /// </summary>
-    /// <returns></returns>
+    /// </summary>    
     private async Task ResetPage()
     {
         if (_selectedPage is not null)
@@ -356,8 +386,7 @@
 
     /// <summary>
     /// Handles the event when the selected tree options change.
-    /// </summary>
-    /// <returns></returns>
+    /// </summary>    
     private async Task ChangedSelectedTreeOptions()
     {
         try
@@ -374,6 +403,7 @@
                 var content = await ApiService.GetPageContentAsync(page.Id);
                 await JS.InvokeVoidAsync("setElementContentById", PAGE_CONTENT_ID, content);
                 ClearAlertMessage();
+                return;
             }
 
             if (_selectedTreeOptions is SectionDto section)
@@ -414,8 +444,7 @@
     /// <summary>
     /// Handles the submission of the modal dialog for creating or editing a section.
     /// </summary>
-    /// <param name="section">The section data to submit.</param>
-    /// <returns></returns>
+    /// <param name="section">The section data to submit.</param>    
     private async Task OnSubmitModalSection(SectionDto section)
     {
         ClearAlertMessage();
@@ -425,8 +454,7 @@
     /// <summary>
     /// Saves the section asynchronously.
     /// </summary>
-    /// <param name="section">The section to save.</param>
-    /// <returns></returns>
+    /// <param name="section">The section to save.</param>    
     private async Task SaveSectionAsync(SectionDto section)
     {
         try
@@ -441,6 +469,7 @@
             }
 
             _sections = await ApiService.GetSectionsAsync();
+            _sortOrder = SortOrder.ByDateAsc;
             SetSelectedTreeOptionsAfterSavingSection();
 
             await ShowAlertMessageAsync("Oddíl byl uložen", AlertStyle.Success, delay: 800);
@@ -474,8 +503,7 @@
     /// <summary>
     /// Handles the confirmation dialog for deleting a section.
     /// </summary>
-    /// <param name="modalDialog">The confirmation dialog result.</param>
-    /// <returns></returns>
+    /// <param name="modalDialog">The confirmation dialog result.</param>    
     private async Task OnDialogDeleteSection(ModalDialog modalDialog)
     {
         if (modalDialog == ModalDialog.Yes && _selectedSection is not null)
@@ -487,8 +515,7 @@
     /// <summary>
     /// Deletes a section asynchronously.
     /// </summary>
-    /// <param name="sectionId">The ID of the section to delete.</param>
-    /// <returns></returns>
+    /// <param name="sectionId">The ID of the section to delete.</param>    
     private async Task DeleteSectionAsync(int sectionId)
     {
         await ShowAlertMessageAsync("Vymazávání oddílu...", AlertStyle.Info);
@@ -512,8 +539,7 @@
     /// <summary>
     /// Handles the submission of the modal dialog for adding or editing a page.
     /// </summary>
-    /// <param name="addedPage">The added or edited page data.</param>
-    /// <returns></returns>
+    /// <param name="addedPage">The added or edited page data.</param>    
     private async Task OnSubmitModalPage(PageDto addedPage)
     {
         ClearAlertMessage();
@@ -524,8 +550,7 @@
 
     /// <summary>
     /// Saves the selected page asynchronously.
-    /// </summary>
-    /// <returns></returns>
+    /// </summary>    
     private async Task SavePageAsync()
     {
         if (_selectedPage is null)
@@ -559,6 +584,7 @@
             }
 
             _sections = await ApiService.GetSectionsAsync();
+            _sortOrder = SortOrder.ByDateAsc;
             DisplayElementsAccordingToSelectedTreeOption(SelectedTreeOptions.Page);
 
             SetSelectedTreeOptionsAfterSavingPage();
@@ -607,8 +633,7 @@
     /// <summary>
     /// Handles the confirmation dialog for deleting a page.
     /// </summary>
-    /// <param name="modalDialog">The confirmation dialog result.</param>
-    /// <returns></returns>
+    /// <param name="modalDialog">The confirmation dialog result.</param>    
     private async Task OnDialogDeletePage(ModalDialog modalDialog)
     {
         if (modalDialog == ModalDialog.Yes && _selectedPage is not null)
@@ -620,8 +645,7 @@
     /// <summary>
     /// Deletes a page asynchronously.
     /// </summary>
-    /// <param name="pageId">The ID of the page to delete.</param>
-    /// <returns></returns>
+    /// <param name="pageId">The ID of the page to delete.</param>    
     private async Task DeletePageAsync(int pageId)
     {
         await ShowAlertMessageAsync("Vymazávání stránky...", AlertStyle.Info);
@@ -655,12 +679,7 @@
     /// <returns>The title of the selected page, or an empty string if no page is selected.</returns>
     private string GetSelectedPageTitle()
     {
-        if (_selectedPage is not null && !string.IsNullOrEmpty(_selectedPage.Title))
-        {
-            return _selectedPage.Title;
-        }
-
-        return string.Empty;
+        return _selectedPage?.Title ?? string.Empty;
     }
 
     /// <summary>
@@ -669,12 +688,7 @@
     /// <returns>The name of the selected section, or an empty string if no section is selected.</returns>
     private string GetSelectedSectionName()
     {
-        if (_selectedSection is not null && !string.IsNullOrEmpty(_selectedSection.Name))
-        {
-            return _selectedSection.Name;
-        }
-
-        return string.Empty;
+        return _selectedSection?.Name ?? string.Empty;
     }
 
     /// <summary>
@@ -684,8 +698,7 @@
     /// <returns>The name of the section if found, otherwise an empty string.</returns>
     private string GetSectionNameById(int id)
     {
-        var section = _sections.FirstOrDefault(x => x.Id == id);
-        return section is not null ? section.Name : string.Empty;
+        return _sections.FirstOrDefault(x => x.Id == id)?.Name ?? string.Empty;
     }
 
     /// <summary>
