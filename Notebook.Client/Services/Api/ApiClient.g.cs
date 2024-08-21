@@ -1743,16 +1743,16 @@ namespace Notebook.Client.Services.Api
         /// Gets or sets the creation date and time of the page.
         /// </summary>
 
-        [System.Text.Json.Serialization.JsonPropertyName("createdDate")]
+        [System.Text.Json.Serialization.JsonPropertyName("createdAt")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.DateTimeOffset CreatedDate { get; set; }
+        public System.DateTimeOffset CreatedAt { get; set; }
 
         /// <summary>
-        /// Gets or sets the optional modification date and time of the page.
+        /// Gets or sets the optional date and time when the page was last updated.
         /// </summary>
 
-        [System.Text.Json.Serialization.JsonPropertyName("modifiedDate")]
-        public System.DateTimeOffset? ModifiedDate { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("updatedAt")]
+        public System.DateTimeOffset? UpdatedAt { get; set; }
 
         /// <summary>
         /// Gets or sets the identifier of the section to which the page belongs.

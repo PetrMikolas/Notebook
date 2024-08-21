@@ -34,12 +34,12 @@ public class PageDto
     /// <summary>
     /// Gets or sets the creation date and time of the page.
     /// </summary>
-    public DateTimeOffset CreatedDate { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 
     /// <summary>
-    /// Gets or sets the optional modification date and time of the page.
+    /// Gets or sets the optional date and time when the page was last updated.
     /// </summary>
-    public DateTimeOffset? ModifiedDate { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 
     /// <summary>
     /// Gets or sets the identifier of the section to which the page belongs.

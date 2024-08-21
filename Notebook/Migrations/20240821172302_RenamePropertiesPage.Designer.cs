@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Notebook.Databases.Notebook;
 
@@ -11,9 +12,11 @@ using Notebook.Databases.Notebook;
 namespace Notebook.Migrations
 {
     [DbContext(typeof(NotebookDbContext))]
-    partial class NotebookDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240821172302_RenamePropertiesSection")]
+    partial class RenamePropertiesSection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

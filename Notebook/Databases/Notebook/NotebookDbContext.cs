@@ -33,8 +33,8 @@ internal sealed class NotebookDbContext(DbContextOptions<NotebookDbContext> opti
             entity.Property(p => p.Title).IsRequired().HasMaxLength(30);
             entity.HasIndex(p => p.Title);
             entity.Property(p => p.Content).IsRequired();
-            entity.Property(p => p.CreatedDate).IsRequired();
-            entity.Property(p => p.ModifiedDate).IsRequired(false);
+            entity.Property(p => p.CreatedAt).IsRequired();
+            entity.Property(p => p.UpdatedAt).IsRequired(false);
         });
 
         SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);

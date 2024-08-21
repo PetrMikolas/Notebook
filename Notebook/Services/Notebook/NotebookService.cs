@@ -44,7 +44,7 @@ internal sealed class NotebookService(INotebookRepository repository, IMemoryCac
         entity.Pages.Add(new Page()
         {
             Title = "Nepojmenovaná stránka",
-            CreatedDate = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow
         });
 
         await repository.CreateSectionAsync(entity, cancellationToken);
@@ -80,7 +80,7 @@ internal sealed class NotebookService(INotebookRepository repository, IMemoryCac
 
 		entity.Title = !string.IsNullOrEmpty(entity.Title) ? entity.Title : "Nepojmenovaná stránka";
         entity.Content ??= string.Empty;
-        entity.CreatedDate = DateTimeOffset.UtcNow;
+        entity.CreatedAt = DateTimeOffset.UtcNow;
         entity.SizeInBytes = Encoding.UTF8.GetBytes(entity.Content).LongLength;
 
         await repository.AddPageAsync(entity, user.Id, cancellationToken);
@@ -96,7 +96,7 @@ internal sealed class NotebookService(INotebookRepository repository, IMemoryCac
 		entity.Title = !string.IsNullOrEmpty(entity.Title) ? entity.Title : "Nepojmenovaná stránka";
         entity.Content ??= string.Empty;
         entity.SizeInBytes = Encoding.UTF8.GetBytes(entity.Content).LongLength;
-        entity.ModifiedDate = DateTimeOffset.UtcNow;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
 
         await repository.UpdatePageAsync(entity, user.Id, cancellationToken);
 

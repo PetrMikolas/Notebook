@@ -23,8 +23,8 @@ internal sealed class NotebookRepository(NotebookDbContext dbContext) : INoteboo
                     Id = page.Id,
                     Title = page.Title,
                     SizeInBytes = page.SizeInBytes,
-                    CreatedDate = page.CreatedDate,
-                    ModifiedDate = page.ModifiedDate,
+                    CreatedAt = page.CreatedAt,
+                    UpdatedAt = page.UpdatedAt,
                     SectionId = page.SectionId,
                 }).ToList()
             })
@@ -105,7 +105,7 @@ internal sealed class NotebookRepository(NotebookDbContext dbContext) : INoteboo
                 .SetProperty(page => page.Title, entity.Title)
                 .SetProperty(page => page.Content, entity.Content)
                 .SetProperty(page => page.SizeInBytes, entity.SizeInBytes)
-                .SetProperty(page => page.ModifiedDate, entity.ModifiedDate)
+                .SetProperty(page => page.UpdatedAt, entity.UpdatedAt)
                 , cancellationToken);
 
         if (numberUpdated == 0)

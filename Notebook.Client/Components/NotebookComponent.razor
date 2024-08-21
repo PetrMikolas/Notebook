@@ -87,10 +87,10 @@
                     </button>
 
                     <span class="page-footer-content" title="Název oddílu a titulek stránky">@GetSectionNameById(_selectedPage.SectionId) &#10784; @_selectedPage.Title</span>
-                    <span class="page-footer-content" title="Datum a čas vytvoření stránky">Vytvořeno: @_selectedPage.CreatedDate.LocalDateTime</span>
-                    @if (_selectedPage.ModifiedDate is not null)
+                    <span class="page-footer-content" title="Datum a čas vytvoření stránky">Vytvořeno: @_selectedPage.CreatedAt.LocalDateTime</span>
+                    @if (_selectedPage.UpdatedAt is not null)
                     {
-                        <span class="page-footer-content" title="Datum a čas upravení stránky">Upraveno: @_selectedPage.ModifiedDate!.Value.LocalDateTime</span>
+                        <span class="page-footer-content" title="Datum a čas upravení stránky">Upraveno: @_selectedPage.UpdatedAt!.Value.LocalDateTime</span>
                     }
                     <span class="page-footer-content" title="Velikost stránky">Velikost: @Utility.FormatBytes(_pageSizeInBytes)</span>
                 }
