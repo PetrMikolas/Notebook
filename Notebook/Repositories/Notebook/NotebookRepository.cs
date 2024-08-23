@@ -10,9 +10,9 @@ namespace Notebook.Repositories.Notebook;
 /// </summary>
 internal sealed class NotebookRepository(NotebookDbContext dbContext) : INotebookRepository
 {
-    public async Task<List<Section>> GetSectionsAsync(string userId, CancellationToken cancellationToken)
+    public async Task<IEnumerable<Section>> GetSectionsAsync(string userId, CancellationToken cancellationToken)
     {
-        var sections = await dbContext.Sections.AsNoTracking()
+        var sectionsQuery = dbContext.Sections.AsNoTracking()
             .Where(section => section.UserId == userId)
             .Select(section => new Section
             {
@@ -27,10 +27,9 @@ internal sealed class NotebookRepository(NotebookDbContext dbContext) : INoteboo
                     UpdatedAt = page.UpdatedAt,
                     SectionId = page.SectionId,
                 }).ToList()
-            })
-            .ToListAsync(cancellationToken);
+            });
 
-        return sections;
+        return await sectionsQuery.ToListAsync(cancellationToken);
     }
 
     public async Task CreateSectionAsync(Section? entity, CancellationToken cancellationToken)
@@ -49,8 +48,9 @@ internal sealed class NotebookRepository(NotebookDbContext dbContext) : INoteboo
         var numberUpdated = await dbContext.Sections
             .Where(section => section.Id == entity.Id && section.UserId == userId)
             .ExecuteUpdateAsync(seters => seters
-                .SetProperty(section => section.Name, entity.Name)
-                , cancellationToken);
+                .SetProperty(section => section.Name, entity.Name),
+                cancellationToken
+            );
 
         if (numberUpdated == 0)
         {
@@ -105,8 +105,9 @@ internal sealed class NotebookRepository(NotebookDbContext dbContext) : INoteboo
                 .SetProperty(page => page.Title, entity.Title)
                 .SetProperty(page => page.Content, entity.Content)
                 .SetProperty(page => page.SizeInBytes, entity.SizeInBytes)
-                .SetProperty(page => page.UpdatedAt, entity.UpdatedAt)
-                , cancellationToken);
+                .SetProperty(page => page.UpdatedAt, entity.UpdatedAt),
+                cancellationToken
+            );
 
         if (numberUpdated == 0)
         {

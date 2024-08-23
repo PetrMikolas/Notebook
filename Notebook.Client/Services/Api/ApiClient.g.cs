@@ -26,14 +26,14 @@ namespace Notebook.Client.Services.Api
     public partial interface IApiClient
     {
         /// <summary>
-        /// Get sections and pages without content
+        /// Retrieve sections and their associated pages for a specified user
         /// </summary>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> GetSectionsAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get sections and pages without content
+        /// Retrieve sections and their associated pages for a specified user
         /// </summary>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> GetSectionsAsync(System.Threading.CancellationToken cancellationToken);
@@ -65,17 +65,23 @@ namespace Notebook.Client.Services.Api
         System.Threading.Tasks.Task UpdateSectionAsync(SectionDto sectionDto, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
-        /// Search sections and pages without content
+        /// Searches for sections and their associated pages based on the search text. Includes sections if the text matches section names or page titles.
         /// </summary>
+        /// <remarks>
+        /// This endpoint retrieves sections and includes their pages if the text matches either the section name or any page title within the section. Sections that contain both matching titles and pages are included only once.
+        /// </remarks>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> SearchValuesAsync(string text);
+        System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> SearchSectionsAndPagesAsync(string text);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Search sections and pages without content
+        /// Searches for sections and their associated pages based on the search text. Includes sections if the text matches section names or page titles.
         /// </summary>
+        /// <remarks>
+        /// This endpoint retrieves sections and includes their pages if the text matches either the section name or any page title within the section. Sections that contain both matching titles and pages are included only once.
+        /// </remarks>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> SearchValuesAsync(string text, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> SearchSectionsAndPagesAsync(string text, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Delete section by ID
@@ -218,7 +224,7 @@ namespace Notebook.Client.Services.Api
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
         /// <summary>
-        /// Get sections and pages without content
+        /// Retrieve sections and their associated pages for a specified user
         /// </summary>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> GetSectionsAsync()
@@ -228,7 +234,7 @@ namespace Notebook.Client.Services.Api
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get sections and pages without content
+        /// Retrieve sections and their associated pages for a specified user
         /// </summary>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> GetSectionsAsync(System.Threading.CancellationToken cancellationToken)
@@ -526,20 +532,26 @@ namespace Notebook.Client.Services.Api
         }
 
         /// <summary>
-        /// Search sections and pages without content
+        /// Searches for sections and their associated pages based on the search text. Includes sections if the text matches section names or page titles.
         /// </summary>
+        /// <remarks>
+        /// This endpoint retrieves sections and includes their pages if the text matches either the section name or any page title within the section. Sections that contain both matching titles and pages are included only once.
+        /// </remarks>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> SearchValuesAsync(string text)
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> SearchSectionsAndPagesAsync(string text)
         {
-            return SearchValuesAsync(text, System.Threading.CancellationToken.None);
+            return SearchSectionsAndPagesAsync(text, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Search sections and pages without content
+        /// Searches for sections and their associated pages based on the search text. Includes sections if the text matches section names or page titles.
         /// </summary>
+        /// <remarks>
+        /// This endpoint retrieves sections and includes their pages if the text matches either the section name or any page title within the section. Sections that contain both matching titles and pages are included only once.
+        /// </remarks>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> SearchValuesAsync(string text, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.List<SectionDto>> SearchSectionsAndPagesAsync(string text, System.Threading.CancellationToken cancellationToken)
         {
             if (text == null)
                 throw new System.ArgumentNullException("text");

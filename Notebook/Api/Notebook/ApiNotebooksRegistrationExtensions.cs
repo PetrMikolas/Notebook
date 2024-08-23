@@ -18,14 +18,17 @@ public static class ApiNotebooksRegistrationExtensions
     /// </summary>
     /// <param name="app">The web application.</param>
     /// <returns>The web application with mapped endpoints for notebook operations.</returns>
-    public static WebApplication MapEndpointsNotebook(this WebApplication app)
+    public static WebApplication MapNotebookEndpoints(this WebApplication app)
     {
-        app.MapGet("sections", async ([FromServices] INotebookService notebookService, [FromServices] IMapper mapper, CancellationToken cancellationToken) =>
+        app.MapGet("sections", async (
+            [FromServices] INotebookService notebookService,
+            [FromServices] IMapper mapper,
+            CancellationToken cancellationToken) =>
         {
             try
             {
                 var sections = await notebookService.GetSectionsAsync(cancellationToken);
-                return Results.Ok(sections.Select(mapper.Map<SectionDto>).ToList());
+                return Results.Ok(sections.Select(mapper.Map<SectionDto>));
             }
             catch (NotAuthorizedException)
             {
@@ -38,17 +41,21 @@ public static class ApiNotebooksRegistrationExtensions
         })
         .WithTags("Sections")
         .WithName("GetSections")
-        .WithOpenApi(operation => new(operation) { Summary = "Get sections and pages without content" })
-        .Produces<List<SectionDto>>(StatusCodes.Status200OK)
+        .WithOpenApi(operation => new(operation) { Summary = "Retrieve sections and their associated pages for a specified user" })
+        .Produces<IEnumerable<SectionDto>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status500InternalServerError);
 
-        app.MapGet("sections/search/{text}", async ([FromRoute] string text, [FromServices] INotebookService notebookService, [FromServices] IMapper mapper, CancellationToken cancellationToken) =>
+        app.MapGet("sections/search/{text}", async (
+            [FromRoute] string text, 
+            [FromServices] INotebookService notebookService, 
+            [FromServices] IMapper mapper, 
+            CancellationToken cancellationToken) =>
         {
             try
             {
-                var sections = await notebookService.SearchSectionsAsync(text, cancellationToken);
-                return Results.Ok(sections.Select(mapper.Map<SectionDto>).ToList());
+                var sections = await notebookService.SearchSectionsAndPagesWithMatchesAsync(text, cancellationToken);
+                return Results.Ok(sections.Select(mapper.Map<SectionDto>));
             }
             catch (NotAuthorizedException)
             {
@@ -60,13 +67,21 @@ public static class ApiNotebooksRegistrationExtensions
             }
         })
         .WithTags("Sections")
-        .WithName("SearchValues")
-        .WithOpenApi(operation => new(operation) { Summary = "Search sections and pages without content" })
-        .Produces<List<SectionDto>>(StatusCodes.Status200OK)
+        .WithName("SearchSectionsAndPages")
+        .WithOpenApi(operation => new(operation)
+        {
+            Summary = "Searches for sections and their associated pages based on the search text. Includes sections if the text matches section names or page titles.",
+            Description = "This endpoint retrieves sections and includes their pages if the text matches either the section name or any page title within the section. Sections that contain both matching titles and pages are included only once."
+        })
+        .Produces<IEnumerable<SectionDto>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status500InternalServerError);
 
-        app.MapPost("sections", async ([FromBody] SectionDto sectionDto, [FromServices] INotebookService notebookService, [FromServices] IMapper mapper, CancellationToken cancellationToken) =>
+        app.MapPost("sections", async (
+            [FromBody] SectionDto sectionDto, 
+            [FromServices] INotebookService notebookService, 
+            [FromServices] IMapper mapper, 
+            CancellationToken cancellationToken) =>
         {
             if (!Helper.IsValidSectionDto(sectionDto, HttpMethod.Post, out string error))
             {
@@ -96,7 +111,11 @@ public static class ApiNotebooksRegistrationExtensions
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status500InternalServerError);
 
-        app.MapPut("sections", async ([FromBody] SectionDto sectionDto, [FromServices] INotebookService notebookService, [FromServices] IMapper mapper, CancellationToken cancellationToken) =>
+        app.MapPut("sections", async (
+            [FromBody] SectionDto sectionDto, 
+            [FromServices] INotebookService notebookService, 
+            [FromServices] IMapper mapper, 
+            CancellationToken cancellationToken) =>
         {
             if (!Helper.IsValidSectionDto(sectionDto, HttpMethod.Put, out string error))
             {
@@ -131,7 +150,10 @@ public static class ApiNotebooksRegistrationExtensions
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 
-        app.MapDelete("sections/{id}", async ([FromRoute] int id, [FromServices] INotebookService notebookService, CancellationToken cancellationToken) =>
+        app.MapDelete("sections/{id}", async (
+            [FromRoute] int id, 
+            [FromServices] INotebookService notebookService, 
+            CancellationToken cancellationToken) =>
         {
             if (id <= 0)
             {
@@ -165,7 +187,11 @@ public static class ApiNotebooksRegistrationExtensions
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 
-        app.MapPost("pages", async ([FromBody] PageDto pageDto, [FromServices] INotebookService notebookService, [FromServices] IMapper mapper, CancellationToken cancellationToken) =>
+        app.MapPost("pages", async (
+            [FromBody] PageDto pageDto, 
+            [FromServices] INotebookService notebookService, 
+            [FromServices] IMapper mapper, 
+            CancellationToken cancellationToken) =>
         {
             if (!Helper.IsValidPageDto(pageDto, HttpMethod.Post, out string error))
             {
@@ -200,7 +226,11 @@ public static class ApiNotebooksRegistrationExtensions
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 
-        app.MapPut("pages", async ([FromBody] PageDto pageDto, [FromServices] INotebookService notebookService, [FromServices] IMapper mapper, CancellationToken cancellationToken) =>
+        app.MapPut("pages", async (
+            [FromBody] PageDto pageDto, 
+            [FromServices] INotebookService notebookService, 
+            [FromServices] IMapper mapper, 
+            CancellationToken cancellationToken) =>
         {
             if (!Helper.IsValidPageDto(pageDto, HttpMethod.Put, out string error))
             {
@@ -235,7 +265,10 @@ public static class ApiNotebooksRegistrationExtensions
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 
-        app.MapDelete("pages/{id}", async ([FromRoute] int id, [FromServices] INotebookService notebookService, CancellationToken cancellationToken) =>
+        app.MapDelete("pages/{id}", async (
+            [FromRoute] int id, 
+            [FromServices] INotebookService notebookService, 
+            CancellationToken cancellationToken) =>
         {
             if (id <= 0)
             {
@@ -269,7 +302,10 @@ public static class ApiNotebooksRegistrationExtensions
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 
-        app.MapGet("pages/content/{id}", async ([FromRoute] int id, [FromServices] INotebookService notebookService, CancellationToken cancellationToken) =>
+        app.MapGet("pages/content/{id}", async (
+            [FromRoute] int id, 
+            [FromServices] INotebookService notebookService, 
+            CancellationToken cancellationToken) =>
         {
             try
             {

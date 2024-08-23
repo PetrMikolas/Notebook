@@ -9,12 +9,12 @@ namespace Notebook.Repositories.Notebook;
 public interface INotebookRepository
 {
     /// <summary>
-    /// Retrieves the sections associated with a specific user identified by his ID.
+    /// Asynchronously retrieves a list of sections from the database for a specified user.    
     /// </summary>
-    /// <param name="userId">The user identifier.</param>
+    /// <param name="userId">The identifier of the user whose sections are to be retrieved.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A list of sections.</returns>
-    Task<List<Section>> GetSectionsAsync(string userId, CancellationToken cancellationToken);
+    /// <returns>The task result is an <see cref="IEnumerable{Section}"/> containing the sections for the specified user.</returns>
+    Task<IEnumerable<Section>> GetSectionsAsync(string userId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Creates a new section.

@@ -20,7 +20,11 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
 
         var accountGroup = endpoints.MapGroup("/Account").WithTags("Account");
 
-        accountGroup.MapPost("/PerformExternalLogin", (HttpContext context, [FromServices] SignInManager<AppUser> signInManager, [FromForm] string provider, [FromForm] string returnUrl) =>
+        accountGroup.MapPost("/PerformExternalLogin", (
+            HttpContext context, 
+            [FromServices] SignInManager<AppUser> signInManager, 
+            [FromForm] string provider, 
+            [FromForm] string returnUrl) =>
         {
             IEnumerable<KeyValuePair<string, StringValues>> query = [new("ReturnUrl", returnUrl), new("Action", ExternalLogin.LoginCallbackAction)];
             var redirectUrl = UriHelper.BuildRelative(context.Request.PathBase, "/Account/ExternalLogin", QueryString.Create(query));
@@ -29,7 +33,10 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             return TypedResults.Challenge(properties, [provider]);
         });
 
-        accountGroup.MapPost("/Logout", async (ClaimsPrincipal user, SignInManager<AppUser> signInManager, [FromForm] string returnUrl) =>
+        accountGroup.MapPost("/Logout", async (
+            ClaimsPrincipal user, 
+            SignInManager<AppUser> signInManager, 
+            [FromForm] string returnUrl) =>
         {
             await signInManager.SignOutAsync();
 
@@ -38,7 +45,10 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
 
         var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();
 
-        manageGroup.MapPost("/LinkExternalLogin", async (HttpContext context, [FromServices] SignInManager<AppUser> signInManager, [FromForm] string provider) =>
+        manageGroup.MapPost("/LinkExternalLogin", async (
+            HttpContext context, 
+            [FromServices] SignInManager<AppUser> signInManager, 
+            [FromForm] string provider) =>
         {
             // Clear the existing external cookie to ensure a clean login process
             await context.SignOutAsync(IdentityConstants.ExternalScheme);
@@ -52,7 +62,10 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
         var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();
         var downloadLogger = loggerFactory.CreateLogger("DownloadPersonalData");
 
-        manageGroup.MapPost("/DownloadPersonalData", async (HttpContext context, [FromServices] UserManager<AppUser> userManager, [FromServices] AuthenticationStateProvider authenticationStateProvider) =>
+        manageGroup.MapPost("/DownloadPersonalData", async (
+            HttpContext context, 
+            [FromServices] UserManager<AppUser> userManager, 
+            [FromServices] AuthenticationStateProvider authenticationStateProvider) =>
         {
             var user = await userManager.GetUserAsync(context.User);
 

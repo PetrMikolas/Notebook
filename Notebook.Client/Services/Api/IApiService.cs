@@ -13,12 +13,13 @@ public interface IApiService
     Task<List<SectionDto>> GetSectionsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Searches for sections or pages matching the provided search text asynchronously.
+    /// Asynchronously searches for sections and pages that match the provided search text.
+    /// If a section or page matches the search text, the corresponding section is included in the results.
     /// </summary>
-    /// <param name="searchText">The text to search for.</param>
-    /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous operation, containing a list of SectionDto objects.</returns>
-    Task<List<SectionDto>> SearchValuesAsync(string searchText, CancellationToken cancellationToken = default);
+    /// <param name="searchText">The text to search for within section names and page titles.</param>
+    /// <param name="cancellationToken">A cancellation token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous operation, containing a list of <see cref="SectionDto"/> objects that match the search criteria.</returns>
+    Task<List<SectionDto>> SearchSectionsAndPagesAsync(string searchText, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new section asynchronously.

@@ -36,11 +36,11 @@ public sealed class ApiService(IApiClient apiClient) : IApiService
         }
     }
 
-    public async Task<List<SectionDto>> SearchValuesAsync(string searchText, CancellationToken cancellationToken = default)
+    public async Task<List<SectionDto>> SearchSectionsAndPagesAsync(string searchText, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await apiClient.SearchValuesAsync(searchText, cancellationToken);
+            return await apiClient.SearchSectionsAndPagesAsync(searchText, cancellationToken);
         }
         catch (ApiException ex)
         {

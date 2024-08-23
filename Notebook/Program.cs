@@ -97,11 +97,9 @@ app.MapRazorComponents<App>()
 // Database
 app.UseDatabaseNotebook(emailService);
 
-// Add additional endpoints required by the Identity 
+// Add endpoints  
 app.MapAdditionalIdentityEndpoints();
-
-// minimal API
-app.MapEndpointsNotebook();
-app.MapEndpointsClientErrors();
+app.MapNotebookEndpoints();
+app.MapClientErrorEndpoints();
 
 app.Run();

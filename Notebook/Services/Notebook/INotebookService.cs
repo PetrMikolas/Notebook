@@ -8,19 +8,22 @@ namespace Notebook.Services.Notebook;
 public interface INotebookService
 {
     /// <summary>
-    /// Gets all sections asynchronously.
+    /// Retrieves all sections and their associated pages asynchronously.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The list of sections.</returns>
-    Task<List<Section>> GetSectionsAsync(CancellationToken cancellationToken);
+    /// <returns>An enumerable collection of sections, each including its associated pages.</returns>
+    Task<IEnumerable<Section>> GetSectionsAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Searches sections asynchronously based on the provided search text.
+    /// Asynchronously searches for sections and their pages based on the provided search text.
+    /// If the search text matches a section's name, the section is included in the results along with its pages.
+    /// If the search text matches a page's title, the entire section containing the page is included in the results.
+    /// Sections that contain both matching titles and pages will be included in the results only once.
     /// </summary>
-    /// <param name="searchText">The search text.</param>
+    /// <param name="searchText">The text to search for within section names and page titles.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The list of sections matching the search criteria.</returns>
-    Task<List<Section>> SearchSectionsAsync(string searchText, CancellationToken cancellationToken);
+    /// <returns>An enumerable collection of sections that match the search criteria. Each section included in the results will also include its pages if the section or any of its pages match the search text.</returns>
+    Task<IEnumerable<Section>> SearchSectionsAndPagesWithMatchesAsync(string searchText, CancellationToken cancellationToken);
 
     /// <summary>
     /// Creates a new section asynchronously.

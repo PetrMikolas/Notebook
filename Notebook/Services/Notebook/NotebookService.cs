@@ -16,12 +16,12 @@ namespace Notebook.Services.Notebook;
 /// <param name="userService">Service responsible for managing user-related operations.</param>
 internal sealed class NotebookService(INotebookRepository repository, IMemoryCache cache, IUserService userService) : INotebookService
 {    
-	public async Task<List<Section>> GetSectionsAsync(CancellationToken cancellationToken)
+	public async Task<IEnumerable<Section>> GetSectionsAsync(CancellationToken cancellationToken)
     {        
 		return await GetSectionsFromCacheAsync(cancellationToken);
     }
        
-    public async Task<List<Section>> SearchSectionsAsync(string searchText, CancellationToken cancellationToken)
+    public async Task<IEnumerable<Section>> SearchSectionsAndPagesWithMatchesAsync(string searchText, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(searchText))
         {
@@ -32,7 +32,7 @@ internal sealed class NotebookService(INotebookRepository repository, IMemoryCac
         var sections = await GetSectionsFromCacheAsync(cancellationToken);
 
         return sections.Where(section => Helper.RemoveDiacritics(section.Name.ToLower()).Contains(text)
-                                        || section.Pages.Any(page => Helper.RemoveDiacritics(page.Title.ToLower()).Contains(text))).ToList();
+                                        || section.Pages.Any(page => Helper.RemoveDiacritics(page.Title.ToLower()).Contains(text)));
     }
      
     public async Task CreateSectionAsync(Section? entity, CancellationToken cancellationToken)
@@ -120,18 +120,17 @@ internal sealed class NotebookService(INotebookRepository repository, IMemoryCac
     }
 
     /// <summary>
-    /// Gets the sections from cache asynchronously.
+    /// Asynchronously retrieves sections from the cache. 
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The list of sections from cache.</returns>
-    private async Task<List<Section>> GetSectionsFromCacheAsync(CancellationToken cancellationToken)
+    /// <returns>An enumerable collection of sections.</returns>
+    private async Task<IEnumerable<Section>> GetSectionsFromCacheAsync(CancellationToken cancellationToken)
     {
-		var user = GetAuthenticatedUser();
+        var user = GetAuthenticatedUser();
 
-		return await cache.GetOrCreateAsync(user.Id, async entry =>
+        return await cache.GetOrCreateAsync(user.Id, async entry =>
         {
             return await repository.GetSectionsAsync(user.Id, cancellationToken);
-
         }) ?? [];
     }
 
