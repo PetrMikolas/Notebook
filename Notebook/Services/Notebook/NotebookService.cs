@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
-using Notebook.Helpers;
 using Notebook.Models;
 using Notebook.Repositories.Notebook;
 using Notebook.Services.User;
 using Notebook.Shared.Exceptions;
+using System.Globalization;
 using System.Text;
 
 namespace Notebook.Services.Notebook;
@@ -28,11 +28,11 @@ internal sealed class NotebookService(INotebookRepository repository, IMemoryCac
             return [];
         }
 
-        string text = Helper.RemoveDiacritics(searchText.Trim().ToLower());
+        string text = RemoveDiacritics(searchText.Trim().ToLower());
         var sections = await GetSectionsFromCacheAsync(cancellationToken);
 
-        return sections.Where(section => Helper.RemoveDiacritics(section.Name.ToLower()).Contains(text)
-                                        || section.Pages.Any(page => Helper.RemoveDiacritics(page.Title.ToLower()).Contains(text)));
+        return sections.Where(section => RemoveDiacritics(section.Name.ToLower()).Contains(text)
+                                        || section.Pages.Any(page => RemoveDiacritics(page.Title.ToLower()).Contains(text)));
     }
      
     public async Task CreateSectionAsync(Section? entity, CancellationToken cancellationToken)
@@ -146,5 +146,18 @@ internal sealed class NotebookService(INotebookRepository repository, IMemoryCac
         }
 
         return userService.CurrentUser;
+    }
+
+    /// <summary>
+    /// Removes diacritics from the specified text.
+    /// </summary>
+    /// <param name="text">The text from which to remove diacritics.</param>
+    /// <returns>The text without diacritics.</returns>
+    private static string RemoveDiacritics(string text)
+    {
+        return new string(text.Normalize(NormalizationForm.FormD)
+                              .Where(ch => CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark)
+                              .ToArray()
+        );
     }
 }
