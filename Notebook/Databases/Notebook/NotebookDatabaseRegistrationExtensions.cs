@@ -8,7 +8,7 @@ namespace Notebook.Databases.Notebook;
 /// <summary>
 /// Provides extension methods for configuring database services related to the notebook module.
 /// </summary>
-public static class DatabaseNotebookRegistrationExtensions
+public static class NotebookDatabaseRegistrationExtensions
 {
     /// <summary>
     /// Registers database services related to the notebook module in the dependency injection container.
@@ -17,16 +17,16 @@ public static class DatabaseNotebookRegistrationExtensions
     /// <param name="configuration">The configuration of the application.</param>
     /// <param name="email">The service for sending email notifications.</param>
     /// <returns>The collection of services with added database services.</returns>
-    public static IServiceCollection AddDatabaseNotebook(this IServiceCollection services, IConfiguration configuration, IEmailService email)
+    public static IServiceCollection AddNotebookDatabase(this IServiceCollection services, IConfiguration configuration, IEmailService email)
     {
         var connectionString = configuration.GetConnectionString("Notebook");
 
         if (string.IsNullOrEmpty(connectionString))
         {
             string errorMessage = "Nelze získat connection string na připojení databáze Notebook";
-            Type classType = typeof(DatabaseNotebookRegistrationExtensions);
+            Type classType = typeof(NotebookDatabaseRegistrationExtensions);
 
-            _ = email.SendErrorAsync(errorMessage, classType, nameof(AddDatabaseNotebook));
+            _ = email.SendErrorAsync(errorMessage, classType, nameof(AddNotebookDatabase));
             LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger(classType).LogError(errorMessage);
 
             return services;
@@ -48,12 +48,12 @@ public static class DatabaseNotebookRegistrationExtensions
     }
 
     /// <summary>
-    /// Applies pending migrations to the database for the notebook module during application startup.
+    /// Applies pending migrations to the database.
     /// </summary>
     /// <param name="app">The web application builder.</param>
     /// <param name="email">The service for sending email notifications.</param>
     /// <returns>The configured web application builder.</returns>
-    public static WebApplication UseDatabaseNotebook(this WebApplication app, IEmailService email)
+    public static WebApplication UseNotebookDatabase(this WebApplication app, IEmailService email)
     {
         if (app.Environment.EnvironmentName != "IntegrationTests")
         {
