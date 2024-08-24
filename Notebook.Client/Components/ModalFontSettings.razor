@@ -118,7 +118,7 @@
                         @foreach (var color in _fontColors)
                         {
                             <label class="color-btn" style="background-color:@color.HexCode;">
-                                <input type="radio" name="font" @onchange="@(() => OnChangeFontColor(color.HexCode))" checked>
+                                <input type="radio" name="font" @onchange="@(() => OnChangeFontColor(color.HexCode))" checked="@IsFontColorChecked(color.HexCode)">
                             </label>
 
                             if (color.Id == 7)
@@ -135,11 +135,9 @@
                     </span>
                     <div class="group-color-btn">
                         @foreach (var color in _fontColors)
-                        {
-                            _isCheckedInputRadio = color.Id == 1 ? true : false;
-
+                        {      
                             <label class="color-btn" style="background-color:@color.HexCode;">
-                                <input type="radio" name="background" @onchange="@(() => OnChangeBackgroundColor(color.HexCode))" checked="@_isCheckedInputRadio">
+                                <input type="radio" name="background" @onchange="@(() => OnChangeBackgroundColor(color.HexCode))" checked="@IsBackgroundColorChecked(color.HexCode)">
                             </label>
 
                             if (color.Id == 7)
@@ -150,7 +148,7 @@
                     </div>
                 </div>
 
-                <span id="preview" class="ps-2 pe-2" style="font-family:@_fontFamily; font-size:@_fontSize; font-weight:@_fontWeight; font-style:@_fontStyle; color:@_fontColor; background-color:@_fontbackgroundColor;">
+                <span id="preview" class="ps-2 pe-2" style="font-family:@_fontFamily; font-size:@_fontSize; font-weight:@_fontWeight; font-style:@_fontStyle; color:@_fontColor; background-color:@_fontBackgroundColor;">
                     Náhled písma
                 </span>
             </div>
@@ -170,7 +168,6 @@
     [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
     [Parameter, EditorRequired] public EventCallback<FontSettings> OnSubmit { get; set; }
 
-    private bool _isCheckedInputRadio;
     private bool _isSelectedFontWeight;
     private bool _isSelectedFontStyle;
     private string _fontFamily = string.Empty;
@@ -178,7 +175,7 @@
     private string _fontWeight = string.Empty;
     private string _fontStyle = string.Empty;
     private string _fontColor = string.Empty;
-    private string _fontbackgroundColor = string.Empty;
+    private string _fontBackgroundColor = string.Empty;
     private string _buttonFontWeightBackgroundColor = string.Empty;
     private string _buttonFontWeightBorderColor = string.Empty;
     private string _buttonFontStyleBackgroundColor = string.Empty;
@@ -230,7 +227,17 @@
     /// <param name="hexCode">Hexadecimal code of the color.</param>
     private void OnChangeBackgroundColor(string hexCode)
     {
-        _fontbackgroundColor = hexCode;
+        _fontBackgroundColor = hexCode;
+    }
+
+    private bool IsFontColorChecked(string hexCode)
+    {
+        return _fontColor == hexCode;
+    }
+
+    private bool IsBackgroundColorChecked(string hexCode)
+    {
+        return _fontBackgroundColor == hexCode;
     }
 
     /// <summary>
@@ -238,7 +245,7 @@
     /// </summary>
     private void SubmitForm()
     {
-        var fontSettings = new FontSettings(_fontFamily, _fontSize, _fontWeight, _fontStyle, _fontColor, _fontbackgroundColor);
+        var fontSettings = new FontSettings(_fontFamily, _fontSize, _fontWeight, _fontStyle, _fontColor, _fontBackgroundColor);
         OnSubmit.InvokeAsync(fontSettings);
 
         CancelForm();
@@ -263,7 +270,7 @@
         _fontWeight = "normal";
         _fontStyle = "normal";
         _fontColor = "#000000";            // Black
-        _fontbackgroundColor = "#FFFFFF";  // White
+        _fontBackgroundColor = "#FFFFFF";  // White
         _buttonFontWeightBackgroundColor = "white";
         _buttonFontWeightBorderColor = "lightgrey";
         _buttonFontStyleBackgroundColor = "white";
