@@ -31,9 +31,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
-builder.Services.AddIdentityServices();
-builder.Services.AddTransient<UserMiddleware>();
-builder.Services.AddMemoryCache();
+// Register and configure AutoMapper with custom profile.
+builder.Services.AddAutoMapper(config =>
+    config.AddProfile<AutoMapperProfile>(), typeof(Program).Assembly);
 
 // Configure options for email service.
 builder.Services
@@ -49,21 +49,22 @@ var emailService = new EmailService(optionsEmailService, loggerEmailService);
 // Register database-related services.
 builder.Services.AddNotebookDatabase(builder.Configuration, emailService);
 
+builder.Services.AddIdentityServices();
+builder.Services.AddTransient<UserMiddleware>();
+builder.Services.AddMemoryCache();
+
+// Register API explorer and Swagger.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSwaggerDocument();
 
-// Register and configure AutoMapper with custom profile.
-builder.Services.AddAutoMapper(config =>
-    config.AddProfile<AutoMapperProfile>(), typeof(Program).Assembly);
-
 // Register application services.
-builder.Services.AddScoped<IEmailSender<AppUser>, EmailSender>();
-builder.Services.AddTransient<INotebookService, NotebookService>();
-builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IEmailSender<AppUser>, EmailSender>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddTransient<INotebookService, NotebookService>();
 
-// Register client services and HTTP client.
+// Register client services and configure HttpClient for ApiClient.
 builder.Services.AddRadzenComponents();
 builder.Services.AddScoped<IApiService, ApiService>();
 builder.Services.AddHttpClient<IApiClient, ApiClient>(config =>
@@ -101,7 +102,7 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(Notebook.Client._Imports).Assembly);
 
-// Apply database migrations
+// Apply database migrations.
 app.UseNotebookDatabase(emailService);
 
 // Map application endpoints.  
