@@ -114,14 +114,14 @@
                     <span class="color-title">
                         Barva písma
                     </span>
-                    <div class="group-color-btn">
-                        @foreach (var color in _fontColors)
+                    <div class="group-color-btn">  
+                        @foreach (var (color, index) in _fontColors.Select((color, index) => (color, index)))
                         {
-                            <label class="color-btn" style="background-color:@color.HexCode;">
-                                <input type="radio" name="font" @onchange="@(() => OnChangeFontColor(color.HexCode))" checked="@IsFontColorChecked(color.HexCode)">
+                            <label class="color-btn" style="background-color:@color;">
+                                <input type="radio" name="font" @onchange="@(() => OnChangeFontColor(color))" checked="@IsFontColorChecked(color)">
                             </label>
 
-                            if (color.Id == 7)
+                            if (index == 6)
                             {
                                 <br />
                             }
@@ -134,13 +134,13 @@
                         Barva zvýraznění textu
                     </span>
                     <div class="group-color-btn">
-                        @foreach (var color in _fontColors)
-                        {      
-                            <label class="color-btn" style="background-color:@color.HexCode;">
-                                <input type="radio" name="background" @onchange="@(() => OnChangeBackgroundColor(color.HexCode))" checked="@IsBackgroundColorChecked(color.HexCode)">
+                        @foreach (var (color, index) in _fontColors.Select((color, index) => (color, index)))
+                        {
+                            <label class="color-btn" style="background-color:@color;">
+                                <input type="radio" name="background" @onchange="@(() => OnChangeBackgroundColor(color))" checked="@IsBackgroundColorChecked(color)">
                             </label>
 
-                            if (color.Id == 7)
+                            if (index == 6)
                             {
                                 <br />
                             }
@@ -179,9 +179,8 @@
     private string _buttonFontWeightBackgroundColor = string.Empty;
     private string _buttonFontWeightBorderColor = string.Empty;
     private string _buttonFontStyleBackgroundColor = string.Empty;
-    private string _buttonFontStyleBorderColor = string.Empty;
-    private record FontColor(int Id, string HexCode);
-    private IList<FontColor> _fontColors = default!;
+    private string _buttonFontStyleBorderColor = string.Empty;    
+    private IList<string> _fontColors = default!;
     private IList<string> _fontFamilies = default!;
     private IDictionary<int, string> _fontSizes = default!;
     public sealed record FontSettings(string Family, string Size, string Weight, string Style, string Color, string Background);
@@ -315,22 +314,22 @@
             { 48, "48px" }
         };
 
-        _fontColors = new List<FontColor>()
+        _fontColors = new List<string>()
         {
-            new FontColor( 1, "#FFFFFF"),
-            new FontColor( 2, "#FFFF00"),
-            new FontColor( 3, "#FFA555"),
-            new FontColor( 4, "#FEC1EC"),
-            new FontColor( 5, "#dc3545"),
-            new FontColor( 6, "#FF00FF"),
-            new FontColor( 7, "#9900ff"),
-            new FontColor( 8, "#00FF00"),
-            new FontColor( 9, "#198754"),
-            new FontColor( 10, "#00FFFF"),
-            new FontColor( 11, "#1569c7"),
-            new FontColor( 12, "#C0C0C0"),
-            new FontColor( 13, "#808080"),
-            new FontColor( 14, "#000000"),
+            "#FFFFFF",
+            "#FFFF00",
+            "#FFA555",
+            "#FEC1EC",
+            "#dc3545",
+            "#FF00FF",
+            "#9900ff",
+            "#00FF00",
+            "#198754",
+            "#00FFFF",
+            "#1569c7",
+            "#C0C0C0",
+            "#808080",
+            "#000000"
         };
 
         SetDefaultParameters();
