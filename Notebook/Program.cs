@@ -15,16 +15,12 @@ using Notebook.Account;
 using static Notebook.Services.Email.EmailService;
 using Microsoft.Extensions.Options;
 using Notebook.Middlewares;
+using Notebook.Sentry;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Sentry for error tracking.
-builder.WebHost.UseSentry(options =>
-{
-	options.Dsn = builder.Configuration["SentryDsn"]!;
-	options.Debug = false;    
-    options.TracesSampleRate = 1.0;
-});
+// Add Sentry services to the WebHostBuilder.
+builder.WebHost.AddSentry(builder.Configuration);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
