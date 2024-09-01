@@ -10,6 +10,10 @@ namespace Notebook.Databases.Notebook;
 /// </summary>
 public static class NotebookDatabaseRegistrationExtensions
 {
+    private static readonly ILogger _logger = LoggerFactory
+        .Create(builder => builder.AddConsole().AddDebug())
+        .CreateLogger(typeof(NotebookDatabaseRegistrationExtensions));
+
     /// <summary>
     /// Registers database services related to the notebook module in the dependency injection container.
     /// </summary>
@@ -21,13 +25,12 @@ public static class NotebookDatabaseRegistrationExtensions
     {
         var connectionString = configuration.GetConnectionString("Notebook");
 
-        if (string.IsNullOrEmpty(connectionString))
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
-            string errorMessage = "Nelze získat connection string na připojení databáze Notebook";
-            Type classType = typeof(NotebookDatabaseRegistrationExtensions);
+            string errorMessage = "Nelze získat connection string na připojení databáze Notebook";            
 
-            _ = email.SendErrorAsync(errorMessage, classType, nameof(AddNotebookDatabase));
-            LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger(classType).LogError(errorMessage);
+            _ = email.SendErrorAsync(errorMessage, typeof(NotebookDatabaseRegistrationExtensions), nameof(AddNotebookDatabase));
+            _logger.LogError(errorMessage);
 
             return services;
         }
@@ -66,7 +69,7 @@ public static class NotebookDatabaseRegistrationExtensions
             catch (Exception ex)
             {
                 _ = email.SendErrorAsync(ex.ToString());
-                app.Logger.LogError(ex.ToString());
+                _logger.LogError(ex.ToString());
 
                 return app;
             }
