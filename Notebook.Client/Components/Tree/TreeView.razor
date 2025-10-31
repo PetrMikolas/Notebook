@@ -1,0 +1,181 @@
+﻿@page "/treeview"
+
+@using System.Collections.Generic
+@using System.Linq
+@using Notebook.Client.Components.Tree
+
+<style>
+    :root {
+        --selected-bg-color: grey;
+        --selected-text-color: white;
+        --hover-bg-color: #f0f0f0;
+        --level-indent: 20px;
+    }
+
+    .tree-root {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border-top: 1px solid #eee;
+    }
+
+    .tree-children {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .tree-node-content {
+        position: relative;
+        cursor: pointer;
+        padding: 5px 8px;
+        user-select: none;
+        border-bottom: 1px solid #eee;
+        background-color: white;
+    }
+
+        .tree-node-content:not(.selected):hover {
+            background-color: var(--hover-bg-color);
+        }
+
+        .tree-node-content.selected {
+            background-color: var(--selected-bg-color);
+            color: var(--selected-text-color);
+        }
+
+    .tree-node-inner {
+        display: flex;
+        align-items: center;
+        /* Nastavuje odsazení zleva pro simulaci hloubky stromu */
+        margin-left: calc(var(--depth) * var(--level-indent));
+    }
+
+    .toggle-icon {
+        display: inline-block;
+        width: 15px;
+        text-align: center;
+        margin-right: 8px;
+        user-select: none;
+        line-height: 0;
+    }
+
+        .toggle-icon .chev {
+            color: grey;
+        }
+
+    .tree-node-content.selected .toggle-icon .chev {
+        color: white; 
+    }
+
+    .toggle-icon.expanded .chev {
+        transform: rotate(90deg);
+    }
+
+    .tree-node {
+        margin-bottom: 0;
+    }
+</style>
+
+<ul class="@(Depth == 0 ? "tree-root custom-tree-container" : "tree-children")">
+    @foreach (var node in TreeNodes ?? Enumerable.Empty<TreeNode>())
+    {
+        bool isExpanded = ExpandedNodes.Contains(node);
+        bool isSelected = ReferenceEquals(node, SelectedNode);
+
+        <li class="tree-node" @key="@node.Id">
+            <div class="tree-node-content @(isSelected ? "selected" : "")" @onclick="() => NodeClicked(node)">
+                <div class="tree-node-inner" style="--depth:@Depth">
+                    @if (node.Children.Any())
+                    {
+                        <span class="toggle-icon @(isExpanded ? "expanded" : "collapsed")"
+                              @onclick:stopPropagation="true"
+                              @onclick="() => ToggleNode(node)">
+                            <svg class="chev" viewBox="0 0 16 16" width="17" height="17" aria-hidden="true" focusable="false">
+                                <path d="M6 4 L10 8 L6 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="toggle-icon no-children"></span>
+                    }
+
+                    <span class="node-text">@node.Text</span>
+                </div>
+            </div>
+
+            @if (isExpanded && node.Children.Any())
+            {
+                <TreeView TreeNodes="node.Children"
+                          Depth="@(Depth + 1)"
+                          SelectedNode="SelectedNode"
+                          OnNodeSelected="NodeClicked"
+                          ExpandedNodes="ExpandedNodes" />
+            }
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter] public int Depth { get; set; } = 0;
+    [Parameter] public List<TreeNode> TreeNodes { get; set; } = new();
+
+    [Parameter] public TreeNode? SelectedNode { get; set; }
+    [Parameter] public EventCallback<TreeNode?> SelectedNodeChanged { get; set; }
+
+    [Parameter] public EventCallback<TreeNode> OnNodeSelected { get; set; }
+
+    [Parameter] public HashSet<TreeNode> ExpandedNodes { get; set; } = new();
+    [Parameter] public bool ExpandAllNodes { get; set; } = false;
+
+    protected override void OnParametersSet()
+    {
+        if (SelectedNode is not null)
+            ExpandToSelected(TreeNodes, SelectedNode);
+
+        if (ExpandAllNodes)
+            ExpandAll(TreeNodes);
+    }
+
+    private bool ExpandToSelected(IEnumerable<TreeNode> nodes, TreeNode selectedNode)
+    {
+        foreach (var node in nodes)
+        {
+            if (ReferenceEquals(node, selectedNode))
+            {
+                ExpandedNodes.Add(node);
+                return true;
+            }
+
+            if (node.Children.Any() && ExpandToSelected(node.Children, selectedNode))
+            {
+                ExpandedNodes.Add(node);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ToggleNode(TreeNode node)
+    {
+        if (!ExpandedNodes.Add(node))
+            ExpandedNodes.Remove(node);
+    }
+
+    private async Task NodeClicked(TreeNode node)
+    {
+        SelectedNode = node;
+
+        await SelectedNodeChanged.InvokeAsync(SelectedNode);
+        await OnNodeSelected.InvokeAsync(node);
+    }
+
+    private void ExpandAll(IEnumerable<TreeNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            ExpandedNodes.Add(node);
+        }
+    }
+}

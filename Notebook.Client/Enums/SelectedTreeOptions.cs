@@ -11,7 +11,7 @@
 /// <item><description><see cref="Page"/>: Selected page.</description></item>
 /// </list>
 /// </remarks>
-public enum SelectedTreeOptions
+public enum SelectedNodeOptions
 {
     /// <summary>
     /// No selected item.
