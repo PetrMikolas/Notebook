@@ -15,7 +15,7 @@ jobs:
       run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login dockerhub.petrmikolas.cz -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
     - name: Build Docker image
-      run: docker build . -f ./notebook/Dockerfile -t dockerhub.petrmikolas.cz/notebook:latest
+      run: docker build . -f ./Notebook/Dockerfile -t dockerhub.petrmikolas.cz/notebook:latest
 
     - name: Push Docker image to Docker Hub
       run: docker push dockerhub.petrmikolas.cz/notebook:latest
