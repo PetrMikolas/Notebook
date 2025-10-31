@@ -7,15 +7,16 @@ using Notebook.Databases.Notebook;
 using Notebook.Mappers;
 using Notebook.Services.Email;
 using Notebook.Services.Notebook;
-using Radzen;
-using Notebook.Models;
 using Notebook.Services.User;
 using Notebook.Services.Identity;
 using Notebook.Account;
 using static Notebook.Services.Email.EmailService;
-using Microsoft.Extensions.Options;
-using Notebook.Middlewares;
 using Notebook.Sentry;
+using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.DataProtection;
+using Notebook.Models;
+using Notebook.Middlewares;
+using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,13 +35,18 @@ builder.Services.AddAutoMapper(config =>
 // Configure options for email service.
 builder.Services
     .AddOptions<EmailOptions>()
-    .BindConfiguration(EmailOptions.Key)    
+    .BindConfiguration(EmailOptions.Key)
     .ValidateDataAnnotations();
 
 // Create and configure email service instance.
 var loggerEmailService = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<EmailService>();
 var optionsEmailService = Options.Create(new EmailOptions());
 var emailService = new EmailService(optionsEmailService, loggerEmailService);
+
+// Add Data Protection with persistent keys
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(@"/app/Keys"))
+    .SetApplicationName("notebook");
 
 // Register database-related services.
 builder.Services.AddNotebookDatabase(builder.Configuration, emailService);
@@ -83,7 +89,7 @@ if (app.Environment.IsDevelopment())
 else
 {
     // Handle exceptions and enforce HTTPS in production.
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);    
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts(); // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
 }
 
