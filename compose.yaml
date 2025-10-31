@@ -3,7 +3,8 @@ version: "3"
 services:  
   notebook:    
     container_name: notebook
-    image: dockerhub.petrmikolas.cz/notebook:latest   
+    image: dockerhub.petrmikolas.cz/notebook:latest  
+    user: root
     environment:
      - ASPNETCORE_ENVIRONMENT=Production    
      - LANG=C.UTF-8   
