@@ -93,7 +93,8 @@ else
     app.UseHsts(); // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
 }
 
-app.UseHttpsRedirection();
+// Not used in Docker – HTTPS is handled by the proxy (avoids warning or redirect loop)
+//app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
