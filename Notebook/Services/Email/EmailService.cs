@@ -1,9 +1,10 @@
 ﻿using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using MimeKit.Text;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
+using System.Runtime.CompilerServices;
 
 namespace Notebook.Services.Email;
 
@@ -48,57 +49,47 @@ internal sealed class EmailService : IEmailService
 
         return new EmailOptions();
     }
-       
+
     public async Task SendErrorAsync(string errorMessage, CancellationToken cancellationToken = default)
     {
         await SendErrorMessageAsync(errorMessage, cancellationToken: cancellationToken);
     }
-    
-    public async Task SendErrorAsync(string errorMessage, Type typeClass, string nameMethod, CancellationToken cancellationToken = default)
+
+    public async Task SendErrorWithContextAsync(string errorMessage, [CallerFilePath] string callerFilePath = "", [CallerMemberName] string callerMemberName = "", CancellationToken cancellationToken = default)
     {
-        await SendErrorMessageAsync(errorMessage, typeClass, nameMethod, cancellationToken: cancellationToken);
+        await SendErrorMessageAsync(errorMessage, callerFilePath, callerMemberName, cancellationToken);
     }
 
     /// <summary>
     /// Sends an error message asynchronously, optionally including information about the class and method where the error occurred.
     /// </summary>
     /// <param name="errorMessage">The error message to be sent.</param>
-    /// <param name="typeClass">The type of the class where the error occurred (optional).</param>
-    /// <param name="nameMethod">The name of the method where the error occurred (optional).</param>
+    /// <param name="callerFilePath">Automatically supplied path of the source file containing the caller.</param>
+    /// <param name="callerMemberName">Automatically supplied name of the calling method or property.</param>
     /// <param name="cancellationToken">The cancellation token (optional). Defaults to <see cref="CancellationToken.None"/>.</param>
     /// <exception cref="ArgumentException">Thrown when not all required method arguments are provided.</exception>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private async Task SendErrorMessageAsync(string errorMessage, Type? typeClass = null, string nameMethod = "", CancellationToken cancellationToken = default)
+    private async Task SendErrorMessageAsync(string errorMessage, string callerFilePath = "", string callerMemberName = "", CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(errorMessage, nameof(errorMessage));
 
-        if ((typeClass is not null && string.IsNullOrEmpty(nameMethod)) || (typeClass is null && !string.IsNullOrEmpty(nameMethod)))
-            throw new ArgumentException("Nejsou vyplněny všechny argumenty metody SendError");
-
         string message = $"Error: {errorMessage}";
+        var className = Path.GetFileNameWithoutExtension(callerFilePath);
+        var categoryName = $"{className}.{callerMemberName}";
 
-        if (typeClass is not null && !string.IsNullOrEmpty(nameMethod))
-            message = $"{message}\n   at {typeClass}.{nameMethod}()";
+        if (categoryName is not ".")
+            message = $"{message}\n   at {categoryName}()";
 
         await SendEmailAsync(message, $"{_options.FromName} - error", _options.AdminEmailAddress, cancellationToken: cancellationToken);
     }
-    
-    public async Task SendObjectAsync<TValue>(TValue value, string subject, CancellationToken cancellationToken = default) where TValue : class
-    {
-        ArgumentNullException.ThrowIfNull(value, nameof(value));
 
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        var jsonValue = JsonSerializer.Serialize(value, options);
-        await SendEmailAsync(jsonValue, subject, _options.AdminEmailAddress, cancellationToken: cancellationToken);
-    }
-    
     public async Task SendEmailAsync(string message, string subject, string address, string name = "", TextFormat textFormat = TextFormat.Plain, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(address, nameof(address));
 
         var mimeMessage = new MimeMessage();
         mimeMessage.From.Add(new MailboxAddress(_options.FromName, _options.FromEmailAddress));
-        mimeMessage.To.Add(new MailboxAddress(name, address));       
+        mimeMessage.To.Add(new MailboxAddress(name, address));
         mimeMessage.Subject = !string.IsNullOrEmpty(subject) ? subject : _options.DefaultSubject;
         mimeMessage.Body = new TextPart(textFormat) { Text = message ?? string.Empty };
 
@@ -110,7 +101,7 @@ internal sealed class EmailService : IEmailService
         try
         {
             using var smtpClient = new SmtpClient();
-            await smtpClient.ConnectAsync(_options.SmtpHost, _options.SmtpPort, _options.SmtpUseSsl, cancellationToken);
+            await smtpClient.ConnectAsync(_options.SmtpHost, _options.SmtpPort, GetSecureSocketOption(_options.SmtpPort), cancellationToken);
             await smtpClient.AuthenticateAsync(_options.SmtpUserName, _options.SmtpPassword, cancellationToken);
             await smtpClient.SendAsync(mimeMessage, cancellationToken);
             await smtpClient.DisconnectAsync(true, cancellationToken);
@@ -120,6 +111,17 @@ internal sealed class EmailService : IEmailService
             _logger.LogError(ex.ToString());
             throw;
         }
+    }
+
+    private static SecureSocketOptions GetSecureSocketOption(int smtpPort)
+    {
+        return smtpPort switch
+        {
+            25 => SecureSocketOptions.StartTlsWhenAvailable,
+            465 => SecureSocketOptions.SslOnConnect,
+            587 => SecureSocketOptions.StartTls,
+            _ => SecureSocketOptions.Auto
+        };
     }
 
     /// <summary>
@@ -143,12 +145,6 @@ internal sealed class EmailService : IEmailService
         /// </summary>
         [Required]
         public int SmtpPort { get; init; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether SSL/TLS should be used for SMTP.
-        /// </summary>
-        [Required]
-        public bool SmtpUseSsl { get; init; }
 
         /// <summary>
         /// Gets or sets the SMTP username.

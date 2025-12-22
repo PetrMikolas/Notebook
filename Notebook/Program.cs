@@ -1,22 +1,21 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Notebook.Account;
 using Notebook.Api.ErrorClient;
 using Notebook.Api.Notebook;
 using Notebook.Client.Services.Api;
 using Notebook.Components;
 using Notebook.Databases.Notebook;
 using Notebook.Mappers;
+using Notebook.Middlewares;
+using Notebook.Models;
+using Notebook.Sentry;
 using Notebook.Services.Email;
+using Notebook.Services.Identity;
 using Notebook.Services.Notebook;
 using Notebook.Services.User;
-using Notebook.Services.Identity;
-using Notebook.Account;
-using static Notebook.Services.Email.EmailService;
-using Notebook.Sentry;
-using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.DataProtection;
-using Notebook.Models;
-using Notebook.Middlewares;
 using Radzen;
+using static Notebook.Services.Email.EmailService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,18 +37,13 @@ builder.Services
     .BindConfiguration(EmailOptions.Key)
     .ValidateDataAnnotations();
 
-// Create and configure email service instance.
-var loggerEmailService = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<EmailService>();
-var optionsEmailService = Options.Create(new EmailOptions());
-var emailService = new EmailService(optionsEmailService, loggerEmailService);
-
 // Add Data Protection with persistent keys
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(@"/app/Keys"))
     .SetApplicationName("notebook");
 
 // Register database-related services.
-builder.Services.AddNotebookDatabase(builder.Configuration, emailService);
+builder.Services.AddNotebookDatabase(builder.Configuration);
 
 builder.Services.AddIdentityServices();
 builder.Services.AddTransient<UserMiddleware>();
@@ -65,6 +59,9 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailSender<AppUser>, EmailSender>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddTransient<INotebookService, NotebookService>();
+
+// Add IHttpContextAccessor to the container.
+builder.Services.AddHttpContextAccessor();
 
 // Register client services and configure HttpClient for ApiClient.
 builder.Services.AddRadzenComponents();
@@ -106,7 +103,7 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(Notebook.Client._Imports).Assembly);
 
 // Apply database migrations.
-app.UseNotebookDatabase(emailService);
+await app.UseNotebookDatabaseAsync();
 
 // Map application endpoints.  
 app.MapAdditionalIdentityEndpoints();

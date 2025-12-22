@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Notebook.Exceptions;
+using Notebook.Helpers;
 using Notebook.Repositories.Notebook;
-using Notebook.Services.Email;
 
 namespace Notebook.Databases.Notebook;
 
@@ -10,30 +11,18 @@ namespace Notebook.Databases.Notebook;
 /// </summary>
 public static class NotebookDatabaseRegistrationExtensions
 {
-    private static readonly ILogger _logger = LoggerFactory
-        .Create(builder => builder.AddConsole().AddDebug())
-        .CreateLogger(typeof(NotebookDatabaseRegistrationExtensions));
-
     /// <summary>
     /// Registers database services related to the notebook module in the dependency injection container.
     /// </summary>
     /// <param name="services">The collection of services in the application.</param>
     /// <param name="configuration">The configuration of the application.</param>
-    /// <param name="email">The service for sending email notifications.</param>
     /// <returns>The collection of services with added database services.</returns>
-    public static IServiceCollection AddNotebookDatabase(this IServiceCollection services, IConfiguration configuration, IEmailService email)
+    public static IServiceCollection AddNotebookDatabase(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("Notebook");
 
         if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            string errorMessage = "Nelze získat connection string na připojení databáze Notebook";            
-
-            _ = email.SendErrorAsync(errorMessage, typeof(NotebookDatabaseRegistrationExtensions), nameof(AddNotebookDatabase));
-            _logger.LogError(errorMessage);
-
-            return services;
-        }
+            throw new ConnectionStringNotFoundException("Nelze získat connection string na připojení databáze Notebook");
 
         services.AddDbContext<NotebookDbContext>(options =>
         {
@@ -42,8 +31,7 @@ public static class NotebookDatabaseRegistrationExtensions
                 opts.MigrationsHistoryTable("MigrationHistory_Notebook");
             });
         });
-             
-        services.AddDatabaseDeveloperPageExceptionFilter();
+
         services.RemoveAll<INotebookRepository>();
         services.AddScoped<INotebookRepository, NotebookRepository>();
 
@@ -54,25 +42,20 @@ public static class NotebookDatabaseRegistrationExtensions
     /// Applies pending migrations to the database.
     /// </summary>
     /// <param name="app">The web application builder.</param>
-    /// <param name="email">The service for sending email notifications.</param>
     /// <returns>The configured web application builder.</returns>
-    public static WebApplication UseNotebookDatabase(this WebApplication app, IEmailService email)
+    public static async Task<WebApplication> UseNotebookDatabaseAsync(this WebApplication app)
     {
-        if (app.Environment.EnvironmentName != "IntegrationTests")
-        {
-            try
-            {
-                using var scope = app.Services.CreateScope();
-                var dbContext = scope.ServiceProvider.GetRequiredService<NotebookDbContext>();
-                dbContext.Database.Migrate();
-            }
-            catch (Exception ex)
-            {
-                _ = email.SendErrorAsync(ex.ToString());
-                _logger.LogError(ex.ToString());
+        using var scope = app.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<NotebookDbContext>();
 
-                return app;
-            }
+        try
+        {
+            await dbContext.Database.MigrateAsync(app.Lifetime.ApplicationStopping);
+        }
+        catch (Exception ex)
+        {
+            app.CreateLogger().LogError(ex, "Database migration failed");
+            throw;
         }
 
         return app;
