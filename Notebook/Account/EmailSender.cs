@@ -10,9 +10,12 @@ namespace Notebook.Account;
 /// </summary> 
 /// <param name="emailService">The email service used to send email messages to users.</param>
 /// <param name="logger">The logger used to record errors.</param>
-/// <param name="httpContextAccessor">Provides access to the current HTTP context, used to construct URLs included in email messages.</param>
-internal sealed class EmailSender(IEmailService emailService, ILogger<EmailSender> logger, IHttpContextAccessor httpContextAccessor) : IEmailSender<AppUser>
+/// <param name="configuration">The application configuration.</param>
+internal sealed class EmailSender(IEmailService emailService, ILogger<EmailSender> logger, IConfiguration configuration) : IEmailSender<AppUser>
 {
+    private readonly string baseUrl = configuration["BaseUrl"]
+        ?? throw new InvalidOperationException("Configuration value 'BaseUrl' is not set.");
+
     public async Task SendConfirmationLinkAsync(AppUser user, string email, string confirmationLink)
     {
         ValidateEmailParameters(user, email, confirmationLink);        
@@ -20,7 +23,7 @@ internal sealed class EmailSender(IEmailService emailService, ILogger<EmailSende
         string message = $"Dobrý den,<br/><br/>" +
                          $"prosím potvrďte svou e-mailovou adresu kliknutím <a href='{confirmationLink}'>zde</a>.<br/><br/>" +
                          $"Po potvrzení e-mailové adresy se budete moci přihlásit do svého účtu v aplikaci Zápisník pomocí ověřeného e-mailu.<br/><br/>" +
-                         $"Odesláno z aplikace <a href='{GetBaseUrl()}'>Zápisník</a>";
+                         $"Odesláno z aplikace <a href='{baseUrl}'>Zápisník</a>";
 
         try
         {
@@ -39,7 +42,7 @@ internal sealed class EmailSender(IEmailService emailService, ILogger<EmailSende
 
         string message = $"Dobrý den,<br/><br/>" +
                          $"pro obnovení hesla prosím klikněte <a href='{resetLink}'>zde</a>.<br/><br/>" +
-                         $"Odesláno z aplikace <a href='{GetBaseUrl()}'>Zápisník</a>";
+                         $"Odesláno z aplikace <a href='{baseUrl}'>Zápisník</a>";
 
         try
         {
@@ -52,7 +55,6 @@ internal sealed class EmailSender(IEmailService emailService, ILogger<EmailSende
         }
     }
 
-
     public async Task SendPasswordResetCodeAsync(AppUser user, string email, string resetCode)
     {
         throw new NotImplementedException();
@@ -63,12 +65,5 @@ internal sealed class EmailSender(IEmailService emailService, ILogger<EmailSende
         ArgumentNullException.ThrowIfNull(user, nameof(user));
         ArgumentException.ThrowIfNullOrWhiteSpace(email, nameof(email));
         ArgumentException.ThrowIfNullOrWhiteSpace(link, nameof(link));
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = httpContextAccessor.HttpContext?.Request;
-
-        return $"{request?.Scheme}://{request?.Host}";
-    }
+    }    
 }
