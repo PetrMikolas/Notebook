@@ -54,14 +54,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSwaggerDocument();
 
+// Add IHttpContextAccessor to the container.
+builder.Services.AddHttpContextAccessor();
+
 // Register application services.
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailSender<AppUser>, EmailSender>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddTransient<INotebookService, NotebookService>();
-
-// Add IHttpContextAccessor to the container.
-builder.Services.AddHttpContextAccessor();
 
 // Register client services and configure HttpClient for ApiClient.
 builder.Services.AddRadzenComponents();
