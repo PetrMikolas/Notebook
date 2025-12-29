@@ -4,6 +4,7 @@ using Notebook.Exceptions;
 using Notebook.Models;
 using Notebook.Services.Notebook;
 using Notebook.Shared.Exceptions;
+using System.Security.Claims;
 
 namespace Notebook.Api.Notebook;
 
@@ -20,32 +21,31 @@ public static class ApiNotebooksRegistrationExtensions
     public static WebApplication MapNotebookEndpoints(this WebApplication app)
     {
         app.MapGet("sections", async (
+            ClaimsPrincipal user,
             [FromServices] INotebookService notebookService,
             [FromServices] IMapper mapper,
             CancellationToken cancellationToken) =>
         {
             try
             {
-                var sections = await notebookService.GetSectionsAsync(cancellationToken);
+                var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)!;                              
+
+                var sections = await notebookService.GetSectionsAsync(userId, cancellationToken);
                 return Results.Ok(sections.Select(mapper.Map<SectionDto>));
-            }
-            catch (NotAuthorizedException)
-            {
-                return Results.Unauthorized();
-            }
+            }            
             catch (Exception)
             {
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         })
+        .RequireAuthorization()
         .WithTags("Sections")
-        .WithName("GetSections")
-        .WithOpenApi(operation => new(operation) { Summary = "Retrieve sections and their associated pages for a specified user" })
-        .Produces<IEnumerable<SectionDto>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status401Unauthorized)
+        .WithName("GetSections")       
+        .Produces<IEnumerable<SectionDto>>(StatusCodes.Status200OK)        
         .Produces(StatusCodes.Status500InternalServerError);
 
         app.MapGet("sections/search/{text}", async (
+            ClaimsPrincipal claimsPrincipal,
             [FromRoute] string text, 
             [FromServices] INotebookService notebookService, 
             [FromServices] IMapper mapper, 
@@ -53,7 +53,9 @@ public static class ApiNotebooksRegistrationExtensions
         {
             try
             {
-                var sections = await notebookService.SearchSectionsAndPagesWithMatchesAsync(text, cancellationToken);
+                var userId = claimsPrincipal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+                var sections = await notebookService.SearchSectionsAndPagesWithMatchesAsync(userId, text, cancellationToken);
                 return Results.Ok(sections.Select(mapper.Map<SectionDto>));
             }
             catch (NotAuthorizedException)
@@ -65,23 +67,21 @@ public static class ApiNotebooksRegistrationExtensions
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         })
+        .RequireAuthorization()
         .WithTags("Sections")
-        .WithName("SearchSectionsAndPages")
-        .WithOpenApi(operation => new(operation)
-        {
-            Summary = "Searches for sections and their associated pages based on the search text. Includes sections if the text matches section names or page titles.",
-            Description = "This endpoint retrieves sections and includes their pages if the text matches either the section name or any page title within the section. Sections that contain both matching titles and pages are included only once."
-        })
+        .WithName("SearchSectionsAndPages")       
         .Produces<IEnumerable<SectionDto>>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status500InternalServerError);
 
         app.MapPost("sections", async (
+            ClaimsPrincipal user,
             [FromBody] SectionDto sectionDto, 
             [FromServices] INotebookService notebookService, 
             [FromServices] IMapper mapper, 
             CancellationToken cancellationToken) =>
         {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             if (!IsValidSectionDto(sectionDto, HttpMethod.Post, out string error))
             {
                 return Results.BadRequest(error);
@@ -90,7 +90,7 @@ public static class ApiNotebooksRegistrationExtensions
             try
             {
                 var entity = mapper.Map<Section>(sectionDto);
-                await notebookService.CreateSectionAsync(entity, cancellationToken);
+                await notebookService.CreateSectionAsync(userId, entity, cancellationToken);
                 return Results.Created($"sections/{entity?.Id}", sectionDto);
             }
             catch (NotAuthorizedException)
@@ -102,20 +102,22 @@ public static class ApiNotebooksRegistrationExtensions
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         })
+        .RequireAuthorization()
         .WithTags("Sections")
-        .WithName("CreateSection")
-        .WithOpenApi(operation => new(operation) { Summary = "Create an section" })
+        .WithName("CreateSection")        
         .Produces<SectionDto>(StatusCodes.Status201Created)
         .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status500InternalServerError);
 
         app.MapPut("sections", async (
+            ClaimsPrincipal user,
             [FromBody] SectionDto sectionDto, 
             [FromServices] INotebookService notebookService, 
             [FromServices] IMapper mapper, 
             CancellationToken cancellationToken) =>
         {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             if (!IsValidSectionDto(sectionDto, HttpMethod.Put, out string error))
             {
                 return Results.BadRequest(error);
@@ -124,7 +126,7 @@ public static class ApiNotebooksRegistrationExtensions
             try
             {
                 var entita = mapper.Map<Section>(sectionDto);
-                await notebookService.UpdateSectionAsync(entita, cancellationToken);
+                await notebookService.UpdateSectionAsync(userId, entita, cancellationToken);
                 return Results.NoContent();
             }
             catch (EntityNotFoundException ex)
@@ -140,20 +142,22 @@ public static class ApiNotebooksRegistrationExtensions
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         })
+        .RequireAuthorization()
         .WithTags("Sections")
-        .WithName("UpdateSection")
-        .WithOpenApi(operation => new(operation) { Summary = "Update the section" })
+        .WithName("UpdateSection")       
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 
         app.MapDelete("sections/{id}", async (
+            ClaimsPrincipal user,
             [FromRoute] int id, 
             [FromServices] INotebookService notebookService, 
             CancellationToken cancellationToken) =>
         {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             if (id <= 0)
             {
                 return Results.BadRequest($"Parametr <{nameof(id)}> musí mít větší hodnotu než nula");
@@ -161,7 +165,7 @@ public static class ApiNotebooksRegistrationExtensions
 
             try
             {
-                await notebookService.DeleteSectionAsync(id, cancellationToken);
+                await notebookService.DeleteSectionAsync(userId, id, cancellationToken);
                 return Results.NoContent();
             }
             catch (EntityNotFoundException ex)
@@ -177,21 +181,23 @@ public static class ApiNotebooksRegistrationExtensions
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         })
+        .RequireAuthorization()
         .WithTags("Sections")
-        .WithName("DeleteSection")
-        .WithOpenApi(operation => new(operation) { Summary = "Delete section by ID" })
+        .WithName("DeleteSection")        
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 
         app.MapPost("pages", async (
+            ClaimsPrincipal user,
             [FromBody] PageDto pageDto, 
             [FromServices] INotebookService notebookService, 
             [FromServices] IMapper mapper, 
             CancellationToken cancellationToken) =>
         {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             if (!IsValidPageDto(pageDto, HttpMethod.Post, out string error))
             {
                 return Results.BadRequest(error);
@@ -200,7 +206,7 @@ public static class ApiNotebooksRegistrationExtensions
             try
             {
                 var entity = mapper.Map<Page>(pageDto);
-                await notebookService.AddPageAsync(entity, cancellationToken);
+                await notebookService.AddPageAsync(userId, entity, cancellationToken);
                 return Results.Created($"pages/{entity?.Id}", pageDto);
             }
             catch (EntityNotFoundException ex)
@@ -216,21 +222,23 @@ public static class ApiNotebooksRegistrationExtensions
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         })
+        .RequireAuthorization()
         .WithTags("Pages")
-        .WithName("AddPage")
-        .WithOpenApi(operation => new(operation) { Summary = "Adds new page to the section" })
+        .WithName("AddPage")        
         .Produces<SectionDto>(StatusCodes.Status201Created)
         .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 
         app.MapPut("pages", async (
+            ClaimsPrincipal user,
             [FromBody] PageDto pageDto, 
             [FromServices] INotebookService notebookService, 
             [FromServices] IMapper mapper, 
             CancellationToken cancellationToken) =>
         {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             if (!IsValidPageDto(pageDto, HttpMethod.Put, out string error))
             {
                 return Results.BadRequest(error);
@@ -239,7 +247,7 @@ public static class ApiNotebooksRegistrationExtensions
             try
             {
                 var entita = mapper.Map<Page>(pageDto);
-                await notebookService.UpdatePageAsync(entita, cancellationToken);
+                await notebookService.UpdatePageAsync(userId, entita, cancellationToken);
                 return Results.NoContent();
             }
             catch (EntityNotFoundException ex)
@@ -255,20 +263,22 @@ public static class ApiNotebooksRegistrationExtensions
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         })
+        .RequireAuthorization()
         .WithTags("Pages")
-        .WithName("UpdatePage")
-        .WithOpenApi(operation => new(operation) { Summary = "Update the page" })
+        .WithName("UpdatePage")        
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 
         app.MapDelete("pages/{id}", async (
+            ClaimsPrincipal user,
             [FromRoute] int id, 
             [FromServices] INotebookService notebookService, 
             CancellationToken cancellationToken) =>
         {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             if (id <= 0)
             {
                 return Results.BadRequest($"Parametr <{nameof(id)}> musí být větší než nula");
@@ -276,7 +286,7 @@ public static class ApiNotebooksRegistrationExtensions
 
             try
             {
-                await notebookService.DeletePageAsync(id, cancellationToken);
+                await notebookService.DeletePageAsync(userId, id, cancellationToken);
                 return Results.NoContent();
             }
             catch (EntityNotFoundException ex)
@@ -292,23 +302,25 @@ public static class ApiNotebooksRegistrationExtensions
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         })
+        .RequireAuthorization()
         .WithTags("Pages")
-        .WithName("DeletePage")
-        .WithOpenApi(operation => new(operation) { Summary = "Delete page by ID" })
+        .WithName("DeletePage")        
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 
         app.MapGet("pages/content/{id}", async (
+            ClaimsPrincipal user,
             [FromRoute] int id, 
             [FromServices] INotebookService notebookService, 
             CancellationToken cancellationToken) =>
         {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             try
             {
-                var content = await notebookService.GetPageContentById(id, cancellationToken);
+                var content = await notebookService.GetPageContentById(userId, id, cancellationToken);
                 return Results.Ok(content);
             }
             catch (EntityNotFoundException ex)
@@ -324,11 +336,10 @@ public static class ApiNotebooksRegistrationExtensions
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         })
+        .RequireAuthorization()
         .WithTags("Pages")
-        .WithName("GetPageContent")
-        .WithOpenApi(operation => new(operation) { Summary = "Get page content by ID" })
+        .WithName("GetPageContent")        
         .Produces<string>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status500InternalServerError);
 

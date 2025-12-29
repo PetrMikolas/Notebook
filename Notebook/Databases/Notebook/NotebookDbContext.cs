@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Notebook.Models;
 
@@ -287,5 +288,9 @@ internal sealed class NotebookDbContext(DbContextOptions<NotebookDbContext> opti
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
         });
+
+        modelBuilder.Entity<IdentityPasskeyData>().HasNoKey();
+
+        base.OnModelCreating(modelBuilder);
     }
 }

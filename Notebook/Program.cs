@@ -7,13 +7,11 @@ using Notebook.Client.Services.Api;
 using Notebook.Components;
 using Notebook.Databases.Notebook;
 using Notebook.Mappers;
-using Notebook.Middlewares;
 using Notebook.Models;
 using Notebook.Sentry;
 using Notebook.Services.Email;
 using Notebook.Services.Identity;
 using Notebook.Services.Notebook;
-using Notebook.Services.User;
 using Radzen;
 using static Notebook.Services.Email.EmailService;
 
@@ -46,7 +44,6 @@ builder.Services.AddDataProtection()
 builder.Services.AddNotebookDatabase(builder.Configuration);
 
 builder.Services.AddIdentityServices();
-builder.Services.AddTransient<UserMiddleware>();
 builder.Services.AddMemoryCache();
 
 // Register API explorer and Swagger.
@@ -57,7 +54,6 @@ builder.Services.AddSwaggerDocument();
 // Register application services.
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailSender<AppUser>, EmailSender>();
-builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddTransient<INotebookService, NotebookService>();
 
 // Register client services and configure HttpClient for ApiClient.
@@ -67,9 +63,6 @@ builder.Services.AddHttpClient<IApiClient, ApiClient>(config =>
     config.BaseAddress = new Uri(builder.Configuration["BaseUrl"]!));
 
 var app = builder.Build();
-
-// Apply user middleware.
-app.UseUserMiddleware();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -84,7 +77,7 @@ else
 {
     // Handle exceptions and enforce HTTPS in production.
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    app.UseHsts(); // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts(); 
 }
 
 // Not used in Docker – HTTPS is handled by the proxy (avoids warning or redirect loop)
@@ -92,6 +85,9 @@ else
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+if (Environment.GetEnvironmentVariable("NSWAG_RUNNING") is not "true")
+    app.MapStaticAssets();
 
 // Configure Razor Components.
 app.MapRazorComponents<App>()

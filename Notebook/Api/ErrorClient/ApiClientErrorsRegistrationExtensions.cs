@@ -30,7 +30,6 @@ public static class ApiClientErrorsRegistrationExtensions
         })
         .WithTags("Errors")
         .WithName("SendError")
-        .WithOpenApi(operation => new(operation) { Summary = "Send an error" })
         .Produces(StatusCodes.Status204NoContent);
 
         return app;

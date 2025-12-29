@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Notebook.Models;
 using Notebook.Repositories.Notebook;
-using Notebook.Services.User;
-using Notebook.Shared.Exceptions;
 using System.Globalization;
 using System.Text;
 
@@ -13,15 +11,14 @@ namespace Notebook.Services.Notebook;
 /// </summary>
 /// <param name="repository">The repository for accessing notebook data.</param>
 /// <param name="cache">The memory cache for storing notebook sections.</param>
-/// <param name="userService">Service responsible for managing user-related operations.</param>
-internal sealed class NotebookService(INotebookRepository repository, IMemoryCache cache, IUserService userService) : INotebookService
-{    
-	public async Task<IEnumerable<Section>> GetSectionsAsync(CancellationToken cancellationToken)
-    {        
-		return await GetSectionsFromCacheAsync(cancellationToken);
+internal sealed class NotebookService(INotebookRepository repository, IMemoryCache cache) : INotebookService
+{
+    public async Task<IEnumerable<Section>> GetSectionsAsync(string userId, CancellationToken cancellationToken)
+    {
+        return await GetSectionsFromCacheAsync(userId, cancellationToken);
     }
-       
-    public async Task<IEnumerable<Section>> SearchSectionsAndPagesWithMatchesAsync(string searchText, CancellationToken cancellationToken)
+
+    public async Task<IEnumerable<Section>> SearchSectionsAndPagesWithMatchesAsync(string userId, string searchText, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(searchText))
         {
@@ -29,18 +26,17 @@ internal sealed class NotebookService(INotebookRepository repository, IMemoryCac
         }
 
         string text = RemoveDiacritics(searchText.Trim().ToLower());
-        var sections = await GetSectionsFromCacheAsync(cancellationToken);
+        var sections = await GetSectionsFromCacheAsync(userId, cancellationToken);
 
         return sections.Where(section => RemoveDiacritics(section.Name.ToLower()).Contains(text)
                                         || section.Pages.Any(page => RemoveDiacritics(page.Title.ToLower()).Contains(text)));
     }
-     
-    public async Task CreateSectionAsync(Section? entity, CancellationToken cancellationToken)
+
+    public async Task CreateSectionAsync(string userId, Section? entity, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entity);
-		var user = GetAuthenticatedUser();
 
-		entity.UserId = user.Id;
+        entity.UserId = userId;
         entity.Pages.Add(new Page()
         {
             Title = "Nepojmenovaná stránka",
@@ -49,103 +45,81 @@ internal sealed class NotebookService(INotebookRepository repository, IMemoryCac
 
         await repository.CreateSectionAsync(entity, cancellationToken);
 
-        cache.Remove(user.Id);
+        cache.Remove(userId);
     }
-        
-    public async Task UpdateSectionAsync(Section? entity, CancellationToken cancellationToken)
+
+    public async Task UpdateSectionAsync(string userId, Section? entity, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entity);
-		var user = GetAuthenticatedUser();
 
-		entity.Name = !string.IsNullOrEmpty(entity.Name) ? entity.Name : "Nepojmenovaný oddíl";
-        await repository.UpdateSectionAsync(entity, user.Id, cancellationToken);
+        entity.Name = !string.IsNullOrEmpty(entity.Name) ? entity.Name : "Nepojmenovaný oddíl";
+        await repository.UpdateSectionAsync(entity, userId, cancellationToken);
 
-        cache.Remove(user.Id);
+        cache.Remove(userId);
     }
 
-   
-    public async Task DeleteSectionAsync(int id, CancellationToken cancellationToken)
+
+    public async Task DeleteSectionAsync(string userId, int id, CancellationToken cancellationToken)
     {
-		var user = GetAuthenticatedUser();
+        await repository.DeleteSectionAsync(id, userId, cancellationToken);
 
-		await repository.DeleteSectionAsync(id, user.Id, cancellationToken);
-
-		cache.Remove(user.Id);
+        cache.Remove(userId);
     }
-       
-    public async Task AddPageAsync(Page? entity, CancellationToken cancellationToken)
+
+    public async Task AddPageAsync(string userId, Page? entity, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entity);
-		var user = GetAuthenticatedUser();
 
-		entity.Title = !string.IsNullOrEmpty(entity.Title) ? entity.Title : "Nepojmenovaná stránka";
+        entity.Title = !string.IsNullOrEmpty(entity.Title) ? entity.Title : "Nepojmenovaná stránka";
         entity.Content ??= string.Empty;
         entity.CreatedAt = DateTimeOffset.UtcNow;
         entity.SizeInBytes = Encoding.UTF8.GetBytes(entity.Content).LongLength;
 
-        await repository.AddPageAsync(entity, user.Id, cancellationToken);
+        await repository.AddPageAsync(entity, userId, cancellationToken);
 
-		cache.Remove(user.Id);
+        cache.Remove(userId);
     }
-      
-    public async Task UpdatePageAsync(Page? entity, CancellationToken cancellationToken)
+
+    public async Task UpdatePageAsync(string userId, Page? entity, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entity);
-		var user = GetAuthenticatedUser();
 
-		entity.Title = !string.IsNullOrEmpty(entity.Title) ? entity.Title : "Nepojmenovaná stránka";
+        entity.Title = !string.IsNullOrEmpty(entity.Title) ? entity.Title : "Nepojmenovaná stránka";
         entity.Content ??= string.Empty;
         entity.SizeInBytes = Encoding.UTF8.GetBytes(entity.Content).LongLength;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await repository.UpdatePageAsync(entity, user.Id, cancellationToken);
+        await repository.UpdatePageAsync(entity, userId, cancellationToken);
 
-		cache.Remove(user.Id);
+        cache.Remove(userId);
     }
-       
-    public async Task DeletePageAsync(int id, CancellationToken cancellationToken)
+
+    public async Task DeletePageAsync(string userId, int id, CancellationToken cancellationToken)
     {
-		var user = GetAuthenticatedUser();
+        await repository.DeletePageAsync(id, userId, cancellationToken);
 
-		await repository.DeletePageAsync(id, user.Id, cancellationToken);
-
-		cache.Remove(user.Id);
+        cache.Remove(userId);
     }
-       
-    public async Task<string> GetPageContentById(int id, CancellationToken cancellationToken)
-    {
-        var user = GetAuthenticatedUser();
 
-		return await repository.GetPageContentById(id, user.Id, cancellationToken);
+    public async Task<string> GetPageContentById(string userId, int id, CancellationToken cancellationToken)
+    {
+        return await repository.GetPageContentById(id, userId, cancellationToken);
     }
 
     /// <summary>
     /// Asynchronously retrieves sections from the cache. 
     /// </summary>
+    /// <param name="userId"></param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>An enumerable collection of sections.</returns>
-    private async Task<IEnumerable<Section>> GetSectionsFromCacheAsync(CancellationToken cancellationToken)
+    private async Task<IEnumerable<Section>> GetSectionsFromCacheAsync(string userId, CancellationToken cancellationToken)
     {
-        var user = GetAuthenticatedUser();
+        //var user = GetAuthenticatedUser();
 
-        return await cache.GetOrCreateAsync(user.Id, async entry =>
+        return await cache.GetOrCreateAsync(userId, async entry =>
         {
-            return await repository.GetSectionsAsync(user.Id, cancellationToken);
+            return await repository.GetSectionsAsync(userId, cancellationToken);
         }) ?? [];
-    }
-
-    /// <summary>
-    /// Gets the authenticated user.
-    /// </summary>
-    /// <returns>The authenticated user.</returns>
-    private CurrentUser GetAuthenticatedUser()
-    {        
-        if (!userService.CurrentUser.IsAuthenticated)
-        {
-            throw new NotAuthorizedException("Uživatel není ověřen.");
-        }
-
-        return userService.CurrentUser;
     }
 
     /// <summary>
