@@ -2,7 +2,7 @@
 
 Webová aplikace pro zapisování poznámek
 
-Naprogramováno v jazyce C# v prostředí Microsoft .NET 8 
+Naprogramováno v jazyce C# v prostředí Microsoft .NET 10 
 
 - App/Client - ASP.NET Core (Blazor Web App) 
 - API - Minimal API
@@ -10,7 +10,7 @@ Naprogramováno v jazyce C# v prostředí Microsoft .NET 8
 - ApiClient - NSwag
 - Databáze - Microsoft SQL Server (MS SQL)
 - ORM - Entity Framework Core (code-first)
-- Nasazení - Docker kontejner pomocí Docker Compose
+- Nasazení - CD pipeline přes GitHub Actions (Docker)
 - Sledování chyb - Sentry
 
 ![Screenshot](Screenshots/Notebook_1.png)
