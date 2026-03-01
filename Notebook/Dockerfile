@@ -9,11 +9,16 @@ ENV LANG=C.UTF-8
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+
+COPY NuGet.Config .
 COPY ["Notebook/Notebook.csproj", "Notebook/"]
 COPY ["Notebook.Client/Notebook.Client.csproj", "Notebook.Client/"]
 COPY ["Notebook.Shared/Notebook.Shared.csproj", "Notebook.Shared/"]
+
 RUN dotnet restore "./Notebook/Notebook.csproj"
+
 COPY . .
+
 WORKDIR "/src/Notebook"
 RUN dotnet build "./Notebook.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
