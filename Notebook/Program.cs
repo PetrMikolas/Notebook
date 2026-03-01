@@ -13,6 +13,8 @@ using Notebook.Services.Email;
 using Notebook.Services.Identity;
 using Notebook.Services.Notebook;
 using Radzen;
+using SqlCommandMonitor.Dashboard.Extensions;
+using SqlCommandMonitor.Extensions;
 using static Notebook.Services.Email.EmailService;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +26,10 @@ builder.WebHost.AddSentry(builder.Configuration);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
+
+// Register SQL Command Monitor services.
+builder.Services.AddSqlCommandMonitor(builder.Configuration);
+builder.Services.AddSqlCommandMonitorDashboard(builder.Configuration);
 
 // Register and configure AutoMapper with custom profile.
 builder.Services.AddAutoMapper(config =>
@@ -77,7 +83,7 @@ else
 {
     // Handle exceptions and enforce HTTPS in production.
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    app.UseHsts(); 
+    app.UseHsts();
 }
 
 // Not used in Docker – HTTPS is handled by the proxy (avoids warning or redirect loop)
@@ -89,11 +95,15 @@ app.UseAntiforgery();
 if (Environment.GetEnvironmentVariable("NSWAG_RUNNING") is not "true")
     app.MapStaticAssets();
 
+
 // Configure Razor Components.
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(Notebook.Client._Imports).Assembly);
+
+app.UseSqlCommandMonitor();
+app.UseSqlCommandMonitorDashboard();
 
 // Apply database migrations.
 await app.UseNotebookDatabaseAsync();

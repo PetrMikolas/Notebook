@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Notebook.Exceptions;
 using Notebook.Helpers;
 using Notebook.Repositories.Notebook;
+using SqlCommandMonitor.Extensions;
 
 namespace Notebook.Databases.Notebook;
 
@@ -24,12 +25,14 @@ public static class NotebookDatabaseRegistrationExtensions
         if (string.IsNullOrWhiteSpace(connectionString))
             throw new ConnectionStringNotFoundException("Nelze získat connection string na připojení databáze Notebook");
 
-        services.AddDbContext<NotebookDbContext>(options =>
+        services.AddDbContext<NotebookDbContext>((sp, options) =>
         {
             options.UseSqlServer(connectionString, opts =>
             {
                 opts.MigrationsHistoryTable("MigrationHistory_Notebook");
             });
+
+            options.ApplySqlCommandMonitorInterceptor(sp);
         });
 
         services.RemoveAll<INotebookRepository>();
