@@ -4,6 +4,7 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
+ENV TZ=Europe/Prague
 ENV LANG=C.UTF-8
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
